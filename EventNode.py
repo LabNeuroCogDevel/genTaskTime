@@ -37,7 +37,7 @@ class EventNode(anytree.NodeMixin):
         self.parents=self.path
         #self.parents=[]
         while p:
-            self.need_total*=p.nrep
+            self.need_total*=int(p.nrep)
             #self.parents.append(p)
             p=p.parent
         return(self)
@@ -49,8 +49,8 @@ class EventNode(anytree.NodeMixin):
         children=node.children
         for c in children: totalreps+= c.count_reps()
         if node.nrep: 
-            if len(children)==0: totalreps=node.nrep
-            else: totalreps*=node.nrep 
+            if len(children)==0: totalreps=int(node.nrep)
+            else: totalreps*=int(node.nrep )
         #print("%d for all %d children of %s"%(totalreps,len(children),node))
         node.total_reps=totalreps
         return(totalreps)
