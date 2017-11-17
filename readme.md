@@ -2,12 +2,12 @@
 * Parses a domain specific language describing an event related fmri task
 * Create stimulus onset files.
 
-Designed for optimizing task timing with `3dDeconvolve -nodata`
+Designed for optimizing task timing with `3dDeconvolve -nodata` as an alternative to `optseq` and `make_random_timing.py`
 
 ## Usage
 ```
-./mktime.py -h
-./mktime.py -i 1 -o stims '<20/4> cue=[1.5](A,B); dly=[3x 3, 1x 6]; end=[1.5]'
+./genTaskTime -h
+./genTaskTime -i 1 -o stims '<20/4> cue=[1.5](A,B); dly=[3x 3, 1x 6]; end=[1.5]'
 ```
 
 ## Grammar

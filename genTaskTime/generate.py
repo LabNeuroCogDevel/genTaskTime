@@ -229,8 +229,8 @@ def fit_tree(last_leaves,ntrials):
 
     return( (n_rep_branches, nperms) )
 
-def write_trials(last_leaves,settings,n_iterations=1000,verb=1):
 
+def gen_events(last_leaves,settings,verb=1):
     # settings
     ntrials=int( settings['ntrial'] )
 
@@ -240,13 +240,19 @@ def write_trials(last_leaves,settings,n_iterations=1000,verb=1):
 
     # todo: min_iti, start_at_time from settings
     min_iti = 1.5
-    start_at_time = 0
 
     triallist = event_tree_to_list(last_leaves, n_rep_branches, min_iti)
     triallist = add_itis(triallist,settings)
 
-    print("making %d version of %d reps of (%d final branches, seen a total of %d times)" %
-          (n_iterations, n_rep_branches, len(last_leaves), nperms))
+    if verb > 0:
+        print("single run: %d reps of (%d final branches, seen a total of %d times)" %
+            (n_rep_branches, len(last_leaves), nperms))
+    
+    return(triallist)
+
+def write_trials(triallist,settings,n_iterations=1000,verb=1):
+    # todo: min_iti, start_at_time from settings
+    start_at_time = 0
 
     # set file name to seed
     # int(math.log10(sys.maxsize)) -- 18 digits
@@ -262,14 +268,21 @@ def write_trials(last_leaves,settings,n_iterations=1000,verb=1):
         if iter_i % 100 == 0 and verb > 0:
             print('finished %d' % iter_i)
 
+def parse_settings(astobj):
+   settings = dict(astobj['settings'])
+   settings['ntrial'] = int(settings['ntrial'])
+   settings['rundur'] = float(settings['rundur'])
+   return(settings)
 
-def string_to_many_files(expstr, n_iterations, n_terations=1000, verb=0):
+def str_to_triallist(expstr,verb=1):
     astobj = parse(expstr)
     events = parse_events(astobj)
     # build a tree from events
     last_leaves = events_to_tree(events, verb)
-    # write out files
-    write_trials(last_leaves, astobj['settings'], n_iterations, verb)
+    # list events
+    settings  = parse_settings(astobj)
+    triallist = gen_events(last_leaves,settings,verb)
+    return( (triallist,settings) )
 
 
 def verbose_info(expstr, verb=99):
@@ -329,7 +342,8 @@ def main():
         os.chdir(args.outputdir)
 
         # run
-        string_to_many_files(expstr, args.n_iterations[0], args.verbosity[0])
+        (triallist,settings)=str_to_triallist(expstr)
+        write_trials(triallist, settings, args.n_iterations[0], args.verbosity[0])
 
 
 if __name__ == '__main__':
