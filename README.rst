@@ -8,6 +8,19 @@ genTaskTime
 Designed for optimizing task timing with ``3dDeconvolve -nodata`` as an
 alternative to ``optseq`` and ``make_random_timing.py``
 
+Install
+-------
+
+::
+
+    pip3 install --user git+https://github.com/LabNeuroCogDevel/genTaskTime
+
+    # add pip python install scripts to path if not already there
+    which genTaskTime || { echo 'export PATH=$PATH:$HOME/.local/bin' >> ~/.bashrc && source ~/.bashrc }
+    # N.B. 
+    # - OS X might have resrouce file ~/.profile instead of ~/.bashrc
+    # - your install might be somewhere else. see: python3 -m site --user-site
+
 Usage
 -----
 
