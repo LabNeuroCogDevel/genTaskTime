@@ -1,106 +1,116 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import random, anytree, copy, pprint, itertools, functools, pprint, sys 
-import EventNode, EventGrammar
+import random, anytree, copy, itertools, functools, pprint, sys
+from .EventNode import EventNode
+from .EventGrammar import unlist_grammar, parse
 
 
 def parse_events(astobj):
-    if astobj == None: return
-    events=EventGrammar.unlist_grammar(astobj['allevents'])
+    if astobj is None: return
+    events = unlist_grammar(astobj['allevents'])
     # TODO: recursively expand subevents that are events in full
     return(events)
 
 # subevent list is an elment of 'eventtypes'
 # this builds a tree of them
-# a=mkChild(EventNode.EventNode('root',dur=0),events[0]['eventtypes'])
+# a=mkChild(EventNode('root',dur=0),events[0]['eventtypes'])
     print("\n#### events")
-def mkChild(parents,elist,verb=1):
-    subevent_list=EventGrammar.unlist_grammar(copy.deepcopy(elist)) #tmp copy because we're poping off it
-    if type(parents) != list:
-        print('I dont think parents are a list, tye are %s; %s'%(type(parents),parents))
-        parents=[parents]
 
-    children=parents
-    if type(subevent_list) != list: subevent_list = [ subevent_list ]
-    if len(subevent_list)>0:
-        children=[]
-        if verb > 1: print("popping from: %s"%subevent_list)
-        seitem=subevent_list.pop(0)
+
+def mkChild(parents, elist, verb=1):
+    # tmp copy because we're poping off it
+    subevent_list = unlist_grammar(copy.deepcopy(elist))
+    if type(parents) != list:
+        print('I dont think parents are a list, tye are %s; %s' %
+              (type(parents), parents))
+        parents = [parents]
+
+    children = parents
+    if type(subevent_list) != list: subevent_list = [subevent_list]
+    if len(subevent_list) > 0:
+        children = []
+        if verb > 1: print("popping from: %s" % subevent_list)
+        seitem = subevent_list.pop(0)
         # skip '*'
         if type(seitem) == str:
             print('skipping *')
-            seitem=subevent_list.pop(0)
+            seitem = subevent_list.pop(0)
 
-        if verb > 1: print("have: %s"%seitem)
+        if verb > 1: print("have: %s" % seitem)
         
         # if we only have 1 subevent, still need to treat it like a list
         # should check for 
         if type(seitem['subevent']) != list:
-            if verb > 1: print('item not a list, coercing: %s'%seitem['subevent'])
-            seitem['subevent']=[seitem['subevent']]
+            if verb > 1: 
+                print('item not a list, coercing: %s' % seitem['subevent'])
+            seitem['subevent'] = [seitem['subevent']]
         
-        these_subevets = EventGrammar.unlist_grammar(seitem['subevent'])
+        these_subevets = unlist_grammar(seitem['subevent'])
         for sube_info in these_subevets:
-           if type(sube_info) == str:
-               if verb > 1: print("\tskipping '")
-               continue # skip ','
+            if type(sube_info) == str:
+                if verb > 1: print("\tskipping '")
+                continue  # skip ','
 
-           if verb > 1: print("\tsube_info: %s"%sube_info)
+            if verb > 1: print("\tsube_info: %s" % sube_info)
 
-           name=sube_info['subname']
-           freq=sube_info['freq']
-           if freq: freq=int(freq)
-           for p in parents:
-              if verb > 1: print("\t\tadding child %s to parent %s"%(name,p))
-              children.append( EventNode.EventNode(name,parent=p,nrep=freq,dur=0) )
+            name = sube_info['subname']
+            freq = sube_info['freq']
+            if freq: freq = int(freq)
+            for p in parents:
+                if verb > 1: 
+                    print("\t\tadding child %s to parent %s" % (name, p))
+                children.append(EventNode(name, parent=p,
+                                nrep=freq, dur=0))
 
         # continue down the line
-        #TODO: fix bad hack; break out of list
+        # TODO: fix bad hack; break out of list
         if len(subevent_list) == 1 and str(subevent_list[0] == list):
             print("\tTODO: do not break recursive list")
-            subevent_list=subevent_list[0]
+            subevent_list = subevent_list[0]
 
-        if verb > 1: print("\t\trecurse DOWN: %s"%subevent_list)
-        children=mkChild(children,subevent_list,verb)
+        if verb > 1: print("\t\trecurse DOWN: %s" % subevent_list)
+        children = mkChild(children, subevent_list, verb)
 
     return(children)
-    
+
 
 # for a ast list of events, build a tree
-def events_to_tree(events,verb=1):
-    last_leaves=None
+def events_to_tree(events, verb=1):
+    last_leaves = None
     for event in events:
-        if last_leaves == None:
-            last_leaves = [ EventNode.EventNode(event['eventname'],dur=event['dur'],parent=None) ]
+        if last_leaves is None:
+            last_leaves = [EventNode(event['eventname'],
+                           dur=event['dur'], parent=None)]
         else:
-            last_leaves = [ EventNode.EventNode(event['eventname'],dur=event['dur'],parent=r) for r in last_leaves ]
-                
+            last_leaves = [EventNode(event['eventname'],
+                           dur=event['dur'], parent=r) for r in last_leaves]
+
         if event['eventtypes']:
             if verb > 1:
-                print('making children for %s'%last_leaves)
+                print('making children for %s' % last_leaves)
                 pprint.pprint(event['eventtypes'])
-            last_leaves = mkChild(last_leaves,event['eventtypes'],verb)
+            last_leaves = mkChild(last_leaves, event['eventtypes'], verb)
 
     return(last_leaves)
 
 
-
-
-## create a master node used calculate delays
-# each node in the tree with the same name points to the same master node
 def create_master_refs(root):
+    """
+     create a master node used calculate delays
+    each node in the tree with the same name points to the same master node
+    """
     # root requires no calculation -- there is only one (right!?)
-    uniquenode = lambda n: '%s'%n.name # '%s %s'%(n.name,n.dur)
+    uniquenode = lambda n: '%s' % n.name  # '%s %s'%(n.name,n.dur)
     masternodes = {}
 
     for n in (root, *root.descendants):
         nname = uniquenode(n)
         if not masternodes.get(nname):
-          n.master_total_reps = 0
-          masternodes[nname] = n
-        n.master_node=masternodes.get(nname)
-        n.master_node.master_total_reps+=n.total_reps
-    return([ x for x in masternodes.values() ] )
+            n.master_total_reps = 0
+            masternodes[nname] = n
+        n.master_node = masternodes.get(nname)
+        n.master_node.master_total_reps += n.total_reps
+    return([x for x in masternodes.values()])
 
 
 def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
@@ -229,50 +239,48 @@ def write_trials(last_leaves,settings,n_iterations=1000,verb=1):
     (n_rep_branches, nperms) = fit_tree(last_leaves,ntrials)
 
     # todo: min_iti, start_at_time from settings
-    min_iti=1.5
-    start_at_time=0
+    min_iti = 1.5
+    start_at_time = 0
 
-    triallist=event_tree_to_list(last_leaves, n_rep_branches, min_iti)
-    triallist=add_itis(triallist,settings)
-                
+    triallist = event_tree_to_list(last_leaves, n_rep_branches, min_iti)
+    triallist = add_itis(triallist,settings)
 
-    print("making %d version of %d reps of (%d final branches, seen a total of %d times)"%
-                     (n_iterations, n_rep_branches ,len(last_leaves),nperms ))
+    print("making %d version of %d reps of (%d final branches, seen a total of %d times)" %
+          (n_iterations, n_rep_branches, len(last_leaves), nperms))
 
     # set file name to seed
     # int(math.log10(sys.maxsize)) -- 18 digits
-    
-    for iter_i in range(0,n_iterations):
+    for iter_i in range(0, n_iterations):
         # set a seed
         seed = random.randrange(sys.maxsize)
         # start timer after or initial rest period
-        write_list_to_file(triallist,start_at_time,seed)
+        write_list_to_file(triallist, start_at_time, seed)
 
         # TODO: run 3dDeconvolve
 
         # print a message very 100 trials
-        if iter_i%100==0 and verb > 0:
-            print('finished %d'%iter_i)
-           
+        if iter_i % 100 == 0 and verb > 0:
+            print('finished %d' % iter_i)
 
 
-def string_to_many_files(expstr,n_iterations,n_terations=1000,verb=0):
-    astobj = EventGrammar.parse(expstr)
+def string_to_many_files(expstr, n_iterations, n_terations=1000, verb=0):
+    astobj = parse(expstr)
     events = parse_events(astobj)
     # build a tree from events
-    last_leaves = events_to_tree(events,verb)
+    last_leaves = events_to_tree(events, verb)
     # write out files
-    write_trials(last_leaves,astobj['settings'],n_iterations,verb)
+    write_trials(last_leaves, astobj['settings'], n_iterations, verb)
 
-def verbose_info(expstr,verb=99):
+
+def verbose_info(expstr, verb=99):
 
     print("### given")
-    astobj = EventGrammar.parse(expstr)
-    pprint.pprint(astobj,indent=2,width=20)
+    astobj = parse(expstr)
+    pprint.pprint(astobj, indent=2, width=20)
 
     print("\n### parsed events")
-    events=parse_events(astobj)
-    pprint.pprint(events,indent=2,width=20)
+    events = parse_events(astobj)
+    pprint.pprint(events, indent=2, width=20)
 
     print('\n# Building Tree')
     # build a tree from events
@@ -283,9 +291,10 @@ def verbose_info(expstr,verb=99):
     print(anytree.RenderTree(root))
 
     print("\n### last leaves")
-    print(last_leaves) 
-    
-if __name__ == '__main__':
+    print(last_leaves)
+
+
+def main():
     import os, sys, argparse
     getargs = argparse.ArgumentParser(description="Make timing files by building an event tree from a DSL description of task timing.")
     getargs.add_argument('timing_description',
@@ -305,20 +314,23 @@ if __name__ == '__main__':
 
     args = getargs.parse_args()
     expstr = args.timing_description[0]
-    #expstr='<1/1>vgs=[1.5]( Left,Right * Near,Far ~); dly=[4x 2,3x 4,2x 6];mgs=[1.5]'
+    # expstr='<1/1>vgs=[1.5]( Left,Right * Near,Far ~); dly=[4x 2,3x 4,2x 6];mgs=[1.5]'
     if args.show_only or args.verbosity[0] > 1:
-       verbose_info(expstr,args.verbosity[0])
+        verbose_info(expstr, args.verbosity[0])
 
     if not args.show_only:
         # deal with where we are saving files
         if os.path.isfile(args.outputdir):
-           print("outdir ('%s') is already a file. Thats not good!"%args.outputdir)
-           sys.exit(1)
+            print("outdir ('%s') is already a file. Thats not good!" %
+                  args.outputdir)
+            sys.exit(1)
         if not os.path.isdir(args.outputdir):
             os.mkdir(args.outputdir)
         os.chdir(args.outputdir)
 
         # run
-        string_to_many_files(expstr, args.n_iterations[0],args.verbosity[0])
+        string_to_many_files(expstr, args.n_iterations[0], args.verbosity[0])
 
-        
+
+if __name__ == '__main__':
+    main()
