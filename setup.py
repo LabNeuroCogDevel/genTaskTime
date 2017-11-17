@@ -9,7 +9,7 @@ setup(name='genTaskTime',
       license='GPLv3',
       packages=['genTaskTime'],
       entry_points={
-        'console_scripts': ['genTaskTime=generate:main'],
+          'console_scripts': ['genTaskTime=genTaskTime:main'],
       },
       install_requires=[
           'anytree',

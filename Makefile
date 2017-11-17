@@ -1,9 +1,12 @@
-all: install README.rst
+all: README.rst install 
 
-install:
+test: 
+	pytest-3
+
+install: test
 	pip install -e . 
 
 README.rst: readme.md
 	pandoc --from=markdown --to=rst --output=README.rst readme.md 
 
-.PHONY: all install
+.PHONY: all install test
