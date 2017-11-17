@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import random, anytree, copy, itertools, functools, pprint, sys
+import random
+import anytree
+import copy
+import itertools
+import functools
+import pprint
+import sys
+import os
 from .EventNode import EventNode
 from .EventGrammar import unlist_grammar, parse
 
@@ -307,44 +314,3 @@ def verbose_info(expstr, verb=99):
     print(last_leaves)
 
 
-def main():
-    import os, sys, argparse
-    getargs = argparse.ArgumentParser(description="Make timing files by building an event tree from a DSL description of task timing.")
-    getargs.add_argument('timing_description',
-                         type=str, help='quoted string' +
-                         '\nlike: "<30/5> first=[2]; next=[1](2x Left, Right)"',nargs=1)
-    getargs.add_argument('-i', dest='n_iterations', type=int,
-                         help="Number of iterations",
-                         nargs=1,default=1000)
-    getargs.add_argument('-o', dest='outputdir', type=str, default='stims',
-                         help="output directory (default='stims/')",
-                         nargs=1)
-    getargs.add_argument('-n','--dry', dest='show_only', action='store_const',
-                         const=True, default=False,
-                         help="Dry run. Show parsing of DSL only. Don't create files")
-    getargs.add_argument('-v',dest='verbosity', default=[1], nargs=1, type=int,
-                         help="Verbosity. 0=print nothing. 99=everything. (default=1)")
-
-    args = getargs.parse_args()
-    expstr = args.timing_description[0]
-    # expstr='<1/1>vgs=[1.5]( Left,Right * Near,Far ~); dly=[4x 2,3x 4,2x 6];mgs=[1.5]'
-    if args.show_only or args.verbosity[0] > 1:
-        verbose_info(expstr, args.verbosity[0])
-
-    if not args.show_only:
-        # deal with where we are saving files
-        if os.path.isfile(args.outputdir):
-            print("outdir ('%s') is already a file. Thats not good!" %
-                  args.outputdir)
-            sys.exit(1)
-        if not os.path.isdir(args.outputdir):
-            os.mkdir(args.outputdir)
-        os.chdir(args.outputdir)
-
-        # run
-        (triallist,settings)=str_to_triallist(expstr)
-        write_trials(triallist, settings, args.n_iterations[0], args.verbosity[0])
-
-
-if __name__ == '__main__':
-    main()
