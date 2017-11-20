@@ -1,8 +1,12 @@
 # genTaskTime
-* Parses a domain specific language describing an event related fmri task
+* Parses a domain specific language describing a rapid event related fmri task
 * Create stimulus onset files.
 
-Designed for optimizing task timing with `3dDeconvolve -nodata` as an alternative to `optseq` and `make_random_timing.py`
+Designed for optimizing task timing with `3dDeconvolve -nodata` as an alternative to `optseq`, `RSFgen`, and `make_random_timing.py`
+
+See
+* https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht03_stim/html/stim_background.html
+* http://andysbrainblog.blogspot.com/2012/06/design-efficiency.html
 
 ## Install
 ```bash
@@ -12,15 +16,15 @@ pip3 install --user git+https://github.com/LabNeuroCogDevel/genTaskTime
 which genTaskTime || { echo 'export PATH=$PATH:$HOME/.local/bin' >> ~/.bashrc && source ~/.bashrc }
 
 # N.B. 
-# - OS X might have resrouce file ~/.profile instead of ~/.bashrc
+# - OS X might have resource file ~/.profile instead of ~/.bashrc
 # - your install might be somewhere else. see:
 #     python3 -m site --user-site
 #     pip3 show genTaskTime --files
 ```
 ## Usage
 ```bash
-./genTaskTime -h
-./genTaskTime -i 1 -o stims '<20/4> cue=[1.5](A,B); dly=[3x 3, 1x 6]; end=[1.5]'
+genTaskTime -h
+genTaskTime -i 1 -o stims '<20/4> cue=[1.5](A,B); dly=[3x 3, 1x 6]; end=[1.5]'
 ```
 
 ## Grammar

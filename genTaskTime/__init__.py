@@ -15,8 +15,8 @@ def main(*args):
                          nargs=1)
     getargs.add_argument('-i', dest='n_iterations', type=int,
                          help="Number of iterations",
-                         nargs=1, default=1000)
-    getargs.add_argument('-o', dest='outputdir', type=str, default='stims',
+                         nargs=1, default=[1000])
+    getargs.add_argument('-o', dest='outputdir', type=str, default=['stims'],
                          help="output directory (default='stims/')",
                          nargs=1)
     getargs.add_argument('-n', '--dry', dest='show_only', action='store_const',

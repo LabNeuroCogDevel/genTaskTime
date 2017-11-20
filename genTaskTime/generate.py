@@ -9,7 +9,7 @@ import pprint
 import sys
 import os
 from .EventNode import EventNode
-from .EventGrammar import unlist_grammar, parse
+from .EventGrammar import unlist_grammar, parse, parse_settings
 
 
 def parse_events(astobj):
@@ -144,38 +144,59 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
     return(triallist) 
 
 
-def write_list_to_file(triallist,start_at_time,seed=None):
+def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
     # shuffle up the events, optionally with a provided seed
     if seed:
         random.Random(seed)
     random.shuffle(triallist)
     # initialize start time and dict to hold output file handles
-    total_time=start_at_time
-    write_to={}
+    total_time = start_at_time
+    write_to = {}
     for tt in triallist:
-        for  t in tt:
+        for t in tt:
+            # if we have a fname,
+            # we want to write this event (stimulus) onset to a file
             if t['fname']:
-                #iter_id = "%05d"%iter_i
-                iter_id = "%018d"%seed
-                fname="_".join( t['fname'])
-                outname=os.path.join(iter_id,fname)
-                if not write_to.get(outname):
-                    #print('%s'%outname)
-                    outdir=os.path.dirname(outname)
-                    if not os.path.isdir( outdir ): os.mkdir(outdir)
-                    write_to[outname] = open(outname,'w')
-                #print('%s: %f (%f)'%(outname,total_time,t['dur']))
-                write_to[outname].write("%.02f "%total_time)
-            total_time+=t['dur']
+                # name should be unique to this iteration.
+                #    iter_id = "%05d"%iter_i
+                # lets use the seed instead, so we can get back to it
+                iter_id = "%018d" % seed
+                fname = "_".join(t['fname'])
+                outname = os.path.join(iter_id, fname)
 
+                # if we have not stored this name yet
+                # we should open it and store the handle
+                if not write_to.get(outname):
+                    # print('%s'%outname)
+                    outdir = os.path.dirname(outname)
+                    if not os.path.isdir(outdir): 
+                        os.mkdir(outdir)
+                    write_to[outname] = open(outname, 'w')
+
+                # write onset time of this stimulus/event
+                # optionally put the duration in there too
+                # like: (onset:dur) e.g 30:1.5
+                if writedur:
+                    onsetstr = "%.02f:%.02f " % (total_time, t['dur'])
+                else:
+                    onsetstr = "%.02f " % total_time
+
+                # finally write it
+                write_to[outname].write(onsetstr)
+
+            # increment total time
+            total_time += t['dur']
+
+    # add new lines to the end of all the files and close the handle
     for v in write_to.values():
         v.write('\n')
         v.close()
 
+
 # settings stores 'rundur' and maybe granularity and finish_with_left
 # TODO: get finish_with_left and granularity from settings
 def add_itis(triallist,settings,finish_with_left=0,start_at_time=0):
-    #[ [{'fname': '', 'dur': '' }, ...], ... ]
+    # [ [{'fname': '', 'dur': '' }, ...], ... ]
     all_durs = [ o['dur'] for x in triallist for o in x ] 
     total_dur=functools.reduce(lambda x,y:x+y, all_durs)
 
@@ -212,17 +233,17 @@ def fit_tree(last_leaves,ntrials):
     # check sanity
     if n_rep_branches < 1:
         print('WARNING: your expreiment has too few trials (%d) to accomidate all branches(%d)'%(ntrials,nperms))
-        n_rep_branches=1
+        n_rep_branches = 1
     elif n_rep_branches != int(n_rep_branches):
         print('WARNING: your expreiment will not be balanced\n\t' +
               '%d trials / %d event branches is not a whole number (%f);'%(ntrials,nperms,n_rep_branches, ))
               #'maybe try %f trials '%(ntrials,nperms,n_rep_branches, (int(n_rep_branches)*nperms) ))
 
-    n_rep_branches=int(n_rep_branches)
+    n_rep_branches = int(n_rep_branches)
 
     # each node should have the nrep sum of its children (x nreps of that node)
     # node.totalreps
-    root=last_leaves[0].root
+    root = last_leaves[0].root
 
     # get how many time each node in the tree will be seen
     root.count_reps() 
@@ -234,28 +255,28 @@ def fit_tree(last_leaves,ntrials):
     for u in unique_nodes:
         u.parse_dur(n_rep_branches)
 
-    return( (n_rep_branches, nperms) )
+    return((n_rep_branches, nperms))
 
 
-def gen_events(last_leaves,settings,verb=1):
+def gen_events(last_leaves, settings, verb=1):
     # settings
-    ntrials=int( settings['ntrial'] )
+    ntrials = int(settings['ntrial'])
 
     # update tree for the number of trials we have
     # updates the nodes of tree
-    (n_rep_branches, nperms) = fit_tree(last_leaves,ntrials)
+    (n_rep_branches, nperms) = fit_tree(last_leaves, ntrials)
 
     # todo: min_iti, start_at_time from settings
     min_iti = 1.5
 
     triallist = event_tree_to_list(last_leaves, n_rep_branches, min_iti)
-    triallist = add_itis(triallist,settings)
+    triallist = add_itis(triallist, settings)
 
     if verb > 0:
         print("single run: %d reps of (%d final branches, seen a total of %d times)" %
             (n_rep_branches, len(last_leaves), nperms))
-    
     return(triallist)
+
 
 def write_trials(triallist,settings,n_iterations=1000,verb=1):
     # todo: min_iti, start_at_time from settings
@@ -275,13 +296,9 @@ def write_trials(triallist,settings,n_iterations=1000,verb=1):
         if iter_i % 100 == 0 and verb > 0:
             print('finished %d' % iter_i)
 
-def parse_settings(astobj):
-   settings = dict(astobj['settings'])
-   settings['ntrial'] = int(settings['ntrial'])
-   settings['rundur'] = float(settings['rundur'])
-   return(settings)
 
-def str_to_triallist(expstr,verb=1):
+
+def str_to_triallist(expstr, verb=1):
     astobj = parse(expstr)
     events = parse_events(astobj)
     # build a tree from events

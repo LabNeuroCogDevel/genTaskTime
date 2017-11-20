@@ -13,6 +13,48 @@ def test_settings_simple():
     assert settings['rundur'] == 10
 
 
+def test_settings_tr():
+    s = "<10/1 @1> cue=[2]"
+    ast = gtt.parse(s)
+    settings = gtt.parse_settings(ast)
+
+    assert settings['ntrial'] == 1
+    assert settings['rundur'] == 10
+    assert settings['tr'] == 1
+
+
+def test_settings_stepsize():
+    s = "<10/1 stepsize:1> cue=[2]"
+    ast = gtt.parse(s)
+    settings = gtt.parse_settings(ast)
+
+    assert settings['ntrial'] == 1
+    assert settings['rundur'] == 10
+    assert settings['granularity'] == 1
+
+
+def test_settings_itirange():
+    s = "<10/1 iti:2.0-4.0> cue=[2]"
+    ast = gtt.parse(s)
+    settings = gtt.parse_settings(ast)
+
+    assert settings['ntrial'] == 1
+    assert settings['rundur'] == 10
+    assert settings['miniti'] == 2.0
+    assert settings['maxiti'] == 4.0
+
+
+def test_settings_pad():
+    s = "<10/1 pad:2+4> cue=[2]"
+    ast = gtt.parse(s)
+    settings = gtt.parse_settings(ast)
+
+    assert settings['ntrial'] == 1
+    assert settings['rundur'] == 10
+    assert settings['startpad'] == 2.0
+    assert settings['stoppad'] == 4.0
+
+
 def test_simple_event():
     s = "<10/1> cue=[2]"
     ast = gtt.parse(s)

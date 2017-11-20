@@ -1,4 +1,5 @@
-import tatsu 
+#!/usr/bin/env python3
+import tatsu
 # parse a string to design an experiment
 # example:
 #  <300/32> cue=[1.5]( Left, Right){0}; dly=[5-7e]; mgs=[1.5]
@@ -39,8 +40,6 @@ import tatsu
 
 # <100/8> cue=[1.5]( (Left,Right) x (Near, Far ~) ) ; dly=[ 2,4,6 g] &; msgs=[1.5]
 
-
-
 GRAMMAR = '''
 # the input is settings and a list of events
 start = settings:runsetting  allevents:eventlist $ ;
@@ -51,35 +50,44 @@ start = settings:runsetting  allevents:eventlist $ ;
 # "<300/32@2 pad:12+20>"
 # "<300/32 pad:12+20 iti:1.5-8>"
 # "<300/32 iti:1.5-8>"
-runsetting = '<'  rundur:num  '/' ntrial:num  ['@' tr:num ] [ 'pad:' startpad:num '+' stoppad:num  ] [ 'iti:' miniiti:num '-' maxiti:num ] '>'  ;
+runsetting = '<'  rundur:num  '/' ntrial:num  [opts:ext_optionsx] '>' ;
 
+ext_optionsx = ext_options ext_optionsx
+             | ext_options
+             ;
+ext_options =
+            | '@' tr:num
+            | 'pad:' startpad:num ['+' stoppad:num]
+            | 'iti:' miniti:num [ '-' maxiti:num ]
+            | 'stepsize:' granularity:num
+            ;
 # sequential ';' events that build the tree
-eventlist = 
-          | event ';' ~ eventlist 
-          | event '|' ~ eventlist 
-          | event 
+eventlist =
+          | event ';' ~ eventlist
+          | event '|' ~ eventlist
+          | event
           ;
 
 # full specification for an event: "cue=[1.5](L,R){0}"
 event =  eventname:name  '='  [dur:duration] ['(' eventtypes:eventnamesx ')' ]  ['{' catchratio:num '}' ] [GLMignore:ignorechars] ;
 
 # distributions: expodential, uniform, geometric
-dist     = 
-         | 'e' 
+dist     =
+         | 'e'
          | 'u'
          | 'g'
          ;
 
 # [1.5] | [1.5-5] | [1.5-5 g] | [1.5,3,4.5] | [ 3 x 1.5, 2 x 3, 1 x 4.5 ]
-duration = 
+duration =
          | '['  dur:num  ']'
          | '['  min:num  '-' max:num [dist:dist]   ']'
          | '['  steps:numlist [dist:dist] ']'
          ;
 
 # L,R * N,F  | (L,R) * (N,F) |  (L,R * N,F), A
-eventnamesx = 
-            | eventnames '*' ~ eventnamesx 
+eventnamesx =
+            | eventnames '*' ~ eventnamesx
             | '(' eventnamesx ')'
             | '(' eventnames ')'
             | eventnames
@@ -88,25 +96,25 @@ eventnamesx =
 eventnames = subevent:subevent [GLMignore:ignorechars];
 
 # list of ways an event can be broken down: "2 x L, 3 x R"
-subevent  = 
+subevent  =
           | subeventinfo ',' ~ subevent
           | subeventinfo
           ;
 
 # maybe duration and an eventname: "2 x L"
 subeventinfo  = [ freq:num 'x' ] subname:eventname;
-          
+
 # name or a full event: "L"| "[.4](N,F){.3}"
-eventname = 
+eventname =
           | event
-          | name 
+          | name
           ;
 
 # catch ratio
 #catches = '{' catchratio:num  '}' ;
 
 # ignore in timing (~), and ignore in tree (&)
-ignorechars = 
+ignorechars =
             | '~'
             | '&'
             | '~&'
@@ -114,14 +122,14 @@ ignorechars =
 
 name = /\w+/ ;
 
-numlist = 
+numlist =
         | numwithfreq ',' ~ numlist
         | numwithfreq
         ;
 
 #e.g "2 x 3" | "3"
 numwithfreq = [freq:num 'x' ] num:num;
- 
+
 # allow 5, 5.01, 0.4, .4
 num = /\d+\.?\d*/ | /\.\d+/ ;
 
@@ -129,15 +137,41 @@ num = /\d+\.?\d*/ | /\.\d+/ ;
 
 
 def unlist_grammar(e):
-    final=[]
-    if type(e) == list: 
+    final = []
+    if type(e) == list:
         for e2 in e:
-           r=unlist_grammar(e2) 
-           if r: final.extend( r )
-    elif type(e) == str: return([])
+            r = unlist_grammar(e2)
+            if r:
+                final.extend(r)
+    elif type(e) == str:
+        return([])
     else:
-      final.append(e)
+        final.append(e)
     return(final)
 
+
 def parse(timingdesc):
-    return(tatsu.parse(GRAMMAR,timingdesc))
+    return(tatsu.parse(GRAMMAR, timingdesc))
+
+
+def parse_settings(astobj):
+    settings = dict(astobj['settings'])
+
+    defopts = {'tr': None,
+               'miniti': .01, 'maxiti': 9e9,
+               'startpad': 0, 'stoppad': 0,
+               'granularity': .01
+               }
+
+    settings = {**settings, **defopts}
+    # overwrite setting options with any given
+    if(settings['opts']):
+        opts = {k: float(v) for x in unlist_grammar(settings['opts'])
+                for k, v in x.items()
+                if v}
+        settings = {**settings, **opts}
+
+    settings['ntrial'] = int(settings['ntrial'])
+    settings['rundur'] = float(settings['rundur'])
+
+    return(settings)
