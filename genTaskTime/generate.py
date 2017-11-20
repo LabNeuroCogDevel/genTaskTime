@@ -141,7 +141,7 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
             thistrial.append( {'fname': None, 'dur': min_iti} )
 
             for i in range(l.total_reps * n_rep_branches): triallist.append(thistrial)
-    return(triallist) 
+    return(triallist)
 
 
 def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
@@ -149,6 +149,7 @@ def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
     if seed:
         random.Random(seed)
     random.shuffle(triallist)
+    # TODO: reshuffle while maxiti
     # initialize start time and dict to hold output file handles
     total_time = start_at_time
     write_to = {}
@@ -194,50 +195,52 @@ def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
 
 
 # settings stores 'rundur' and maybe granularity and finish_with_left
-# TODO: get finish_with_left and granularity from settings
-def add_itis(triallist,settings,finish_with_left=0,start_at_time=0):
+def add_itis(triallist, settings):
     # [ [{'fname': '', 'dur': '' }, ...], ... ]
-    all_durs = [ o['dur'] for x in triallist for o in x ] 
-    total_dur=functools.reduce(lambda x,y:x+y, all_durs)
+    all_durs = [o['dur'] for x in triallist for o in x]
+    total_dur = functools.reduce(lambda x, y: x + y, all_durs)
 
-    rundur=float(settings['rundur'])
-    rundur=rundur - finish_with_left
-    if total_dur  > (rundur - start_at_time):
-        print("ERROR: total event time (%.2f) is greater than run time (%.2f)!"%(total_dur,rundur))
+    rundur = float(settings['rundur'])
+    rundur = rundur - settings['stoppad']
+    if total_dur > (rundur - settings['startpad']):
+        msg = "ERROR: total event time (%.2f) is greater than run time (%.2f)!"
+        print(msg % (total_dur, rundur))
+        # TODO: maybe return None. exitings a bit extreme for a module!
         sys.exit(1)
-        #TODO: print info about finish_with_left + start_at_time and min_iti n_rep_branches
-        rundur = total_dur # TODO, maybe die instead?
-        
+        # TODO: print info about
+        #  stoppad + startpad and min_iti n_rep_branches
+        rundur = total_dur  # TODO, maybe die instead?
 
-    ## calculate number of ITIs we need. make them and add to triallist
-    # TODO:
-    # - use specified granularity 
-    granularity=.01
-    n_iti = int( (rundur - total_dur ) / granularity )
+    # # calculate number of ITIs we need. make them and add to triallist
+    n_iti = int((rundur - total_dur)/settings['granularity'])
 
-    triallist += [ [ {'fname': None, 'dur': granularity} ] ] * n_iti
+    triallist += [[{'fname': None, 'dur': settings['granularity']}]] * n_iti
     return(triallist)
+
 
 # update tree for the number of trials we have
 # updates the nodes of tree
-def fit_tree(last_leaves,ntrials):
+def fit_tree(last_leaves, ntrials):
     # how many times do we go down the tree?
-    nperms=0
+    nperms = 0
     for l in last_leaves:
         l.set_last()
-        #print("leaf '%s' seen %d times"%(l,l.need_total))
-        nperms+=l.need_total
+        # print("leaf '%s' seen %d times"%(l,l.need_total))
+        nperms += l.need_total
 
-    n_rep_branches=ntrials/nperms
+    n_rep_branches = ntrials/nperms
 
     # check sanity
     if n_rep_branches < 1:
-        print('WARNING: your expreiment has too few trials (%d) to accomidate all branches(%d)'%(ntrials,nperms))
+        print('WARNING: your expreiment has too few trials' +
+              '(%d) to accomidate all branches(%d)' % (ntrials, nperms))
         n_rep_branches = 1
     elif n_rep_branches != int(n_rep_branches):
-        print('WARNING: your expreiment will not be balanced\n\t' +
-              '%d trials / %d event branches is not a whole number (%f);'%(ntrials,nperms,n_rep_branches, ))
-              #'maybe try %f trials '%(ntrials,nperms,n_rep_branches, (int(n_rep_branches)*nperms) ))
+        print(('WARNING: your expreiment will not be balanced\n\t' +
+               '%d trials / %d event branches is not a whole number'
+               '(%f);') % (ntrials, nperms, n_rep_branches))
+        # 'maybe try %f trials
+        # '%(ntrials,nperms,n_rep_branches, (int(n_rep_branches)*nperms) ))
 
     n_rep_branches = int(n_rep_branches)
 
@@ -260,14 +263,13 @@ def fit_tree(last_leaves,ntrials):
 
 def gen_events(last_leaves, settings, verb=1):
     # settings
-    ntrials = int(settings['ntrial'])
+    ntrials = settings['ntrial']
 
     # update tree for the number of trials we have
     # updates the nodes of tree
     (n_rep_branches, nperms) = fit_tree(last_leaves, ntrials)
 
-    # todo: min_iti, start_at_time from settings
-    min_iti = 1.5
+    min_iti = settings['miniti']
 
     triallist = event_tree_to_list(last_leaves, n_rep_branches, min_iti)
     triallist = add_itis(triallist, settings)
@@ -278,9 +280,9 @@ def gen_events(last_leaves, settings, verb=1):
     return(triallist)
 
 
-def write_trials(triallist,settings,n_iterations=1000,verb=1):
+def write_trials(triallist, settings, n_iterations=1000, verb=1):
     # todo: min_iti, start_at_time from settings
-    start_at_time = 0
+    start_at_time = settings['startpad']
 
     # set file name to seed
     # int(math.log10(sys.maxsize)) -- 18 digits
@@ -297,16 +299,15 @@ def write_trials(triallist,settings,n_iterations=1000,verb=1):
             print('finished %d' % iter_i)
 
 
-
 def str_to_triallist(expstr, verb=1):
     astobj = parse(expstr)
     events = parse_events(astobj)
     # build a tree from events
     last_leaves = events_to_tree(events, verb)
     # list events
-    settings  = parse_settings(astobj)
-    triallist = gen_events(last_leaves,settings,verb)
-    return( (triallist,settings) )
+    settings = parse_settings(astobj)
+    triallist = gen_events(last_leaves, settings, verb)
+    return((triallist, settings))
 
 
 def verbose_info(expstr, verb=99):
@@ -329,5 +330,3 @@ def verbose_info(expstr, verb=99):
 
     print("\n### last leaves")
     print(last_leaves)
-
-
