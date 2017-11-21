@@ -58,7 +58,7 @@ ext_optionsx = ext_options ext_optionsx
 ext_options =
             | '@' tr:num
             | 'pad:' startpad:num ['+' stoppad:num]
-            | 'iti:' miniti:num [ '-' maxiti:num ]
+            | 'iti:' miniti:num [ '-' maxiti:num ] [ 'mu' avgiti:num ]
             | 'stepsize:' granularity:num
             ;
 # sequential ';' events that build the tree
@@ -81,7 +81,7 @@ dist     =
 # [1.5] | [1.5-5] | [1.5-5 g] | [1.5,3,4.5] | [ 3 x 1.5, 2 x 3, 1 x 4.5 ]
 duration =
          | '['  dur:num  ']'
-         | '['  min:num  '-' max:num [dist:dist]   ']'
+         | '['  min:num  '-' max:num [ '@' stepsize:num] [dist:dist]   ']'
          | '['  steps:numlist [dist:dist] ']'
          ;
 
