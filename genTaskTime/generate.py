@@ -109,13 +109,18 @@ def events_to_tree(events, verb=1):
     return(last_leaves)
 
 
+# return a unique string for a node
+# currently just use that nodes name
+def uniquenode(n):
+    return('%s' % n.name)  # '%s %s'%(n.name,n.dur)
+
+
 def create_master_refs(root):
     """
      create a master node used calculate delays
     each node in the tree with the same name points to the same master node
     """
     # root requires no calculation -- there is only one (right!?)
-    uniquenode = lambda n: '%s' % n.name  # '%s %s'%(n.name,n.dur)
     masternodes = {}
 
     for n in (root, *root.descendants):
