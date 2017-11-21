@@ -13,7 +13,8 @@ from .EventGrammar import unlist_grammar, parse, parse_settings
 
 
 def parse_events(astobj):
-    if astobj is None: return
+    if astobj is None:
+        return
     events = unlist_grammar(astobj['allevents'])
     # TODO: recursively expand subevents that are events in full
     return(events)
@@ -33,38 +34,44 @@ def mkChild(parents, elist, verb=1):
         parents = [parents]
 
     children = parents
-    if type(subevent_list) != list: subevent_list = [subevent_list]
+    if type(subevent_list) != list:
+        subevent_list = [subevent_list]
     if len(subevent_list) > 0:
         children = []
-        if verb > 1: print("popping from: %s" % subevent_list)
+        if verb > 1:
+            print("popping from: %s" % subevent_list)
         seitem = subevent_list.pop(0)
         # skip '*'
         if type(seitem) == str:
             print('skipping *')
             seitem = subevent_list.pop(0)
 
-        if verb > 1: print("have: %s" % seitem)
-        
+        if verb > 1:
+            print("have: %s" % seitem)
+
         # if we only have 1 subevent, still need to treat it like a list
-        # should check for 
+        # should check for
         if type(seitem['subevent']) != list:
-            if verb > 1: 
+            if verb > 1:
                 print('item not a list, coercing: %s' % seitem['subevent'])
             seitem['subevent'] = [seitem['subevent']]
-        
+
         these_subevets = unlist_grammar(seitem['subevent'])
         for sube_info in these_subevets:
             if type(sube_info) == str:
-                if verb > 1: print("\tskipping '")
+                if verb > 1:
+                    print("\tskipping '")
                 continue  # skip ','
 
-            if verb > 1: print("\tsube_info: %s" % sube_info)
+            if verb > 1:
+                print("\tsube_info: %s" % sube_info)
 
             name = sube_info['subname']
             freq = sube_info['freq']
-            if freq: freq = int(freq)
+            if freq:
+                freq = int(freq)
             for p in parents:
-                if verb > 1: 
+                if verb > 1:
                     print("\t\tadding child %s to parent %s" % (name, p))
                 children.append(EventNode(name, parent=p,
                                 nrep=freq, dur=0))
@@ -75,7 +82,8 @@ def mkChild(parents, elist, verb=1):
             print("\tTODO: do not break recursive list")
             subevent_list = subevent_list[0]
 
-        if verb > 1: print("\t\trecurse DOWN: %s" % subevent_list)
+        if verb > 1:
+            print("\t\trecurse DOWN: %s" % subevent_list)
         children = mkChild(children, subevent_list, verb)
 
     return(children)
@@ -122,25 +130,27 @@ def create_master_refs(root):
 
 def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
     # tree to list
-    triallist=[]
+    triallist = []
     for l in last_leaves:
         branch = l.parents
-        fname=[]
+        fname = []
         for i in range(l.nrep):
-            thistrial=[]
+            thistrial = []
             for n in branch:
-                n=n.master_node
+                n = n.master_node
                 if n.dur != 0:
                     if fname:
-                        thistrial.append( {'fname':fname, 'dur': dur} )
-                    fname=[]
-                    dur=0
+                        thistrial.append({'fname': fname, 'dur': dur})
+                    fname = []
+                    dur = 0
                 fname.append(n.name)
-                dur+=n.next_dur()
-            if fname: thistrial.append( {'fname':fname, 'dur': dur} )
-            thistrial.append( {'fname': None, 'dur': min_iti} )
+                dur += n.next_dur()
+            if fname:
+                thistrial.append({'fname': fname, 'dur': dur})
+            thistrial.append({'fname': None, 'dur': min_iti})
 
-            for i in range(l.total_reps * n_rep_branches): triallist.append(thistrial)
+            for i in range(l.total_reps * n_rep_branches):
+                triallist.append(thistrial)
     return(triallist)
 
 
@@ -249,7 +259,7 @@ def fit_tree(last_leaves, ntrials):
     root = last_leaves[0].root
 
     # get how many time each node in the tree will be seen
-    root.count_reps() 
+    root.count_reps()
     # different branches have nodes with the same name
     # link them all to one node so we can draw duration times from that one
     unique_nodes = create_master_refs(root)
