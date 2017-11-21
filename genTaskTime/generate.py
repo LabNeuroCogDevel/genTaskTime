@@ -296,7 +296,6 @@ def gen_events(last_leaves, settings, verb=1):
 
 
 def write_trials(triallist, settings, n_iterations=1000, verb=1):
-    # todo: min_iti, start_at_time from settings
     start_at_time = settings['startpad']
 
     # set file name to seed
