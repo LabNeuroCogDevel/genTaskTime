@@ -154,7 +154,7 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
                 thistrial.append({'fname': fname, 'dur': dur})
             thistrial.append({'fname': None, 'dur': min_iti})
 
-            for i in range(l.total_reps * n_rep_branches):
+            for i in range(l.count_branch_reps() * n_rep_branches):
                 triallist.append(thistrial)
     return(triallist)
 
@@ -185,7 +185,7 @@ def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
                 if not write_to.get(outname):
                     # print('%s'%outname)
                     outdir = os.path.dirname(outname)
-                    if not os.path.isdir(outdir): 
+                    if not os.path.isdir(outdir):
                         os.mkdir(outdir)
                     write_to[outname] = open(outname, 'w')
 

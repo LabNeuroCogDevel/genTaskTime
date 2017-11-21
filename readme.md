@@ -62,3 +62,21 @@ TODO: uneven event subtypes, catch trials,  nested events
 
 ## Notes
 This is very much not complete and very ugly
+
+### Data structures and algorithms 
+ 1. The grammar is parsed into events `cue=[1](A,B); end`
+ 2. events are parsed into a tree where each event/stimulus is a node
+   -  building the tree returns the last leaves of each unique branch
+   - e.g `cue->a->end; cue->b->end;`
+   - events without duration go into the parents names (later for output: `cue->a` will be file `cue_a`)
+ 4. the tree is fit for the number of trials we have (`fit_tree`)
+   - nodes acquire the property `total_reps`
+ 5. we pull out "unique nodes" (by name only) by backtracking through the branches
+   - calculate how many times the node will be seen (nrep)
+   - distribute durations based on nrep
+   - `cue`,`a`,`b`,`end`
+ 6. calculate the number and total duration of our events (+ min iti), add itis (with duration=stepdur) to consume remaining time
+   - `n_rep_branch` is how many times we should run each branch (== `ntrials/n_perms`)
+   - `n_perms` is number of branches with multipliers `1xA + 2xB == 3`
+ 7. shuffle for number of iterations specified (default 1000). and write out files in directories named after the random seed
+

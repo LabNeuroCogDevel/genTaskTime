@@ -15,7 +15,7 @@ def unlist_grammar(e):
 class EventNode(anytree.NodeMixin):
 
 
-    def __init__(self,name,dur,parent=None,nrep=1,writeout=True,extra=None):
+    def __init__(self,name,dur,parent=None,nrep=1,writeout=True,extra=None,verbose=1):
         if(nrep == None): nrep=1
         self.parent=parent
         self.name=name
@@ -23,6 +23,7 @@ class EventNode(anytree.NodeMixin):
         self.nrep=nrep
         self.writeout=writeout
         self.last=False
+        self.verbose=verbose
         #self.finalized = False
         self.extra=extra
 
@@ -54,9 +55,27 @@ class EventNode(anytree.NodeMixin):
                 totalreps = int(node.nrep)
             else:
                 totalreps *= int(node.nrep)
-        # print("%d for all %d children of %s"%(totalreps,len(children),node))
+        if node.verbose > 1:
+            print("count_reps (recursive): %d for all %d children of %s" %
+                  (totalreps, len(children), node))
         node.total_reps = totalreps
         return(totalreps)
+
+    def count_branch_reps(node):
+        """
+        how many total reps do we do of this branch
+        cue=[1](2x A); end => 2
+        cue=[1](3x B); end => 3
+        """
+        branch_reps = node.total_reps
+        if not hasattr(node, 'branch_reps'):
+            pn = node.parent
+            while pn:
+                branch_reps *= pn.nrep
+                pn = pn.parent
+            node.branch_reps = branch_reps
+        return(node.branch_reps)
+
 
     # TODO: handle distibutions
     def parse_dur(self, nperms):
