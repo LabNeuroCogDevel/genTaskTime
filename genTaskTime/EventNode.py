@@ -45,19 +45,21 @@ class EventNode(anytree.NodeMixin):
     # how many times is this node hit on it's children branches
     # N.B. still need to combine across branches
     def count_reps(node):
-        totalreps=0
-        children=node.children
-        for c in children: totalreps+= c.count_reps()
-        if node.nrep: 
-            if len(children)==0: totalreps=int(node.nrep)
-            else: totalreps*=int(node.nrep )
-        #print("%d for all %d children of %s"%(totalreps,len(children),node))
-        node.total_reps=totalreps
+        totalreps = 0
+        children = node.children
+        for c in children:
+            totalreps += c.count_reps()
+        if node.nrep:
+            if len(children) == 0:
+                totalreps = int(node.nrep)
+            else:
+                totalreps *= int(node.nrep)
+        # print("%d for all %d children of %s"%(totalreps,len(children),node))
+        node.total_reps = totalreps
         return(totalreps)
-        
 
     # TODO: handle distibutions
-    def parse_dur(self,nperms):
+    def parse_dur(self, nperms):
         ## how many durs do we need?
         # -- should probably stop if do not have total_reps
         nsamples= getattr(self, "master_total_reps", \
