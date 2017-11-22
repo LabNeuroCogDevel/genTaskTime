@@ -47,3 +47,7 @@ def dummydur(**kargs):
            'steps': None}
     return({**dur, **kargs})
 
+
+def cnt(v):
+    return({str(k): len(list(g))
+            for k, g in itertools.groupby(sorted(v))})

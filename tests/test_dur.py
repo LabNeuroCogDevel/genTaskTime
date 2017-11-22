@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import genTaskTime as gtt
-import itertools
+from helpers import dummydur, cnt
 
 
 def test_parse_dur():
-    dur = {'dist': 'u', 'dur': None, 'min': None, 'max': None,
-           'steps': [{'freq': None, 'num': 1},
-                     {'freq': None, 'num': 2}]}
+    dur = dummydur(steps=[{'freq': None, 'num': 1},
+                          {'freq': None, 'num': 2}])
     node = gtt.EventNode('test', dur, nrep=2)
     node.count_reps()
     node.master_total_reps = 2
@@ -73,10 +72,4 @@ def test_dur_list():
     assert durgrps.get('2.0') == 2
 
     # and nothing else
-    assert all([x in [1, 2] for x in durs])
-
-
-def cnt(v):
-    return({str(k): len(list(g))
-            for k, g in itertools.groupby(sorted(v))})
-
+    assert all([x in [1, 2, 4] for x in durs])

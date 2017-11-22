@@ -1,6 +1,4 @@
 import anytree
-import functools
-import math
 import random
 from .badmath import zeno_dichotomy, fit_dist, list_to_length_n, rep_a_b_times
 

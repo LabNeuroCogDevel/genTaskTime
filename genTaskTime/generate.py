@@ -3,13 +3,13 @@
 import random
 import anytree
 import copy
-import itertools
 import functools
 import pprint
 import sys
 import os
 from .EventNode import EventNode
 from .EventGrammar import unlist_grammar, parse, parse_settings
+# import itertools
 
 
 def parse_events(astobj):
@@ -129,7 +129,14 @@ def create_master_refs(root):
             n.master_total_reps = 0
             masternodes[nname] = n
         n.master_node = masternodes.get(nname)
-        n.master_node.master_total_reps += n.total_reps
+        # this is wrong
+        #   n.master_node.master_total_reps += n.total_reps
+        # total_reps is "total on that branch".
+        #  at root == nperms
+        #  at leaf might it is == nrep
+
+        # should be sum of leaf nodes need_total
+        n.master_node.master_total_reps += n.count_branch_reps()
     return([x for x in masternodes.values()])
 
 
@@ -142,20 +149,26 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
     triallist = []
     for l in last_leaves:
         branch_nodes = l.parents
-        fname = []
+
+        n_total_branch_reps = n_rep_branches * l.need_total
+        # l.need_total == l.count_branch_reps()
 
         # we have:
-        #  l.nrep -- repeats on the leaf branch
-        #  n_rep_branches  -- total repeats
-        #  l.count_branch_reps()
-        msg = ("have %d reps on this final leaf, %d total reps." +
-               "we repeat everything %d times") % (
-               l.nrep, l.count_branch_reps(), n_rep_branches)
-        print(msg)
+        #  n_rep_branches  -- total repeats (based on nperm)
+        #  l.count_branch_reps() -- number of times this node on this branch
+        #  l.nrep -- repeats from grammer (e.g. 2x )
+        msg = ("working from %s, %d == %d total reps." +
+               "we repeat everything %d times. total = %d") % (
+               l, l.count_branch_reps(),
+               l.need_total, n_rep_branches,
+               n_total_branch_reps)
+        if l.root.verbose > 0:
+            print(msg)
 
-        total_branch_reps = range(n_rep_branches * l.count_branch_reps())
-        for pass_through_branch_i in total_branch_reps:
+        for branch_rep_i in range(n_total_branch_reps):
             thistrial = []
+            fname = []
+            dur = 0
             for n in branch_nodes:
                 n = n.master_node
                 if n.dur != 0:
@@ -174,6 +187,8 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
             # for all the counts of of branch
             # for j in range(l.count_branch_reps() * n_rep_branches):
             #     triallist.append(thistrial)
+    if l.root.verbose > 5:
+        pprint.pprint(triallist)
     return(triallist)
 
 
@@ -330,14 +345,18 @@ def write_trials(triallist, settings, n_iterations=1000, verb=1):
         if iter_i % 100 == 0 and verb > 0:
             print('finished %d' % iter_i)
 
-
-def str_to_triallist(expstr, verb=1):
+def str_to_last_leaves(expstr,verb=1):
     astobj = parse(expstr)
     events = parse_events(astobj)
     # build a tree from events
     last_leaves = events_to_tree(events, verb)
     # list events
     settings = parse_settings(astobj)
+    return((last_leaves, settings))
+
+
+def str_to_triallist(expstr, verb=1):
+    (last_leaves, settings) = str_to_last_leaves(expstr)
     triallist = gen_events(last_leaves, settings, verb)
     return((triallist, settings))
 
