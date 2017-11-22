@@ -212,6 +212,7 @@ def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
                 # lets use the seed instead, so we can get back to it
                 iter_id = "%018d" % seed
                 fname = "_".join(t['fname'])
+                fname = fname + '.1D'
                 outname = os.path.join(iter_id, fname)
 
                 # if we have not stored this name yet
