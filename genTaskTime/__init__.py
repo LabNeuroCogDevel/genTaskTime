@@ -48,11 +48,11 @@ def main(*args):
         os.chdir(outdir)
 
         # run
-        (triallist, settings) = str_to_triallist(expstr)
-        write_trials(triallist, settings,
+        #(triallist, settings) = str_to_triallist(expstr)
+        (last_leaves, settings) = str_to_last_leaves(expstr)
+        write_trials(last_leaves, settings,
                      args.n_iterations[0], args.verbosity[0])
 
 
 if __name__ == '__main__':
     main()
-

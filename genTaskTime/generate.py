@@ -193,6 +193,7 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
 
 
 def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
+
     # shuffle up the events, optionally with a provided seed
     if seed:
         random.Random(seed)
@@ -328,7 +329,7 @@ def gen_events(last_leaves, settings, verb=1):
     return(triallist)
 
 
-def write_trials(triallist, settings, n_iterations=1000, verb=1):
+def write_trials(last_leaves, settings, n_iterations=1000, verb=1):
     start_at_time = settings['startpad']
 
     # set file name to seed
@@ -336,6 +337,8 @@ def write_trials(triallist, settings, n_iterations=1000, verb=1):
     for iter_i in range(0, n_iterations):
         # set a seed
         seed = random.randrange(sys.maxsize)
+        # get a new trial list
+        triallist = gen_events(copy.copy(last_leaves), settings, verb)
         # start timer after or initial rest period
         write_list_to_file(triallist, start_at_time, seed)
 
@@ -345,7 +348,8 @@ def write_trials(triallist, settings, n_iterations=1000, verb=1):
         if iter_i % 100 == 0 and verb > 0:
             print('finished %d' % iter_i)
 
-def str_to_last_leaves(expstr,verb=1):
+
+def str_to_last_leaves(expstr, verb=1):
     astobj = parse(expstr)
     events = parse_events(astobj)
     # build a tree from events
@@ -355,6 +359,7 @@ def str_to_last_leaves(expstr,verb=1):
     return((last_leaves, settings))
 
 
+# now only used for testing
 def str_to_triallist(expstr, verb=1):
     (last_leaves, settings) = str_to_last_leaves(expstr)
     triallist = gen_events(last_leaves, settings, verb)
