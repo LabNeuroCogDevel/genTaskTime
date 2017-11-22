@@ -1,4 +1,17 @@
-from genTaskTime.badmath import fit_dist
+from genTaskTime.badmath import fit_dist, list_to_length_n
+
+
+def test_list():
+    ll = list_to_length_n([1, 2], 1, '')
+    assert len(ll) == 1
+
+    ll = list_to_length_n([1, 2], 2, '')
+    assert len(ll) == 2
+
+    ll = list_to_length_n([1, 2], 3, '')
+    assert len(ll) == 3
+    assert 1 in ll
+    assert 2 in ll
 
 
 def test_fit_dist():

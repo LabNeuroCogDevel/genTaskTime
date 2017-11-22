@@ -40,3 +40,10 @@ def file_counts(tl):
     i = itertools.groupby(sorted(fnames))
     d = {x: len(list(y)) for x, y in i}
     return(d)
+
+
+def dummydur(**kargs):
+    dur = {'dist': None, 'dur': None, 'min': None, 'max': None,
+           'steps': None}
+    return({**dur, **kargs})
+

@@ -134,14 +134,29 @@ def create_master_refs(root):
 
 
 def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
+    isverb = last_leaves[0].root.verbose > 0
+    if isverb:
+        print('event_tree_to_list: %d leaves, %d n_reps' %
+              (len(last_leaves), n_rep_branches))
     # tree to list
     triallist = []
     for l in last_leaves:
-        branch = l.parents
+        branch_nodes = l.parents
         fname = []
-        for i in range(l.nrep):
+
+        # we have:
+        #  l.nrep -- repeats on the leaf branch
+        #  n_rep_branches  -- total repeats
+        #  l.count_branch_reps()
+        msg = ("have %d reps on this final leaf, %d total reps." +
+               "we repeat everything %d times") % (
+               l.nrep, l.count_branch_reps(), n_rep_branches)
+        print(msg)
+
+        total_branch_reps = range(n_rep_branches * l.count_branch_reps())
+        for pass_through_branch_i in total_branch_reps:
             thistrial = []
-            for n in branch:
+            for n in branch_nodes:
                 n = n.master_node
                 if n.dur != 0:
                     if fname:
@@ -152,10 +167,13 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
                 dur += n.next_dur()
             if fname:
                 thistrial.append({'fname': fname, 'dur': dur})
-            thistrial.append({'fname': None, 'dur': min_iti})
+            if min_iti is not None and min_iti > 0:
+                thistrial.append({'fname': None, 'dur': min_iti})
 
-            for i in range(l.count_branch_reps() * n_rep_branches):
-                triallist.append(thistrial)
+            triallist.append(thistrial)
+            # for all the counts of of branch
+            # for j in range(l.count_branch_reps() * n_rep_branches):
+            #     triallist.append(thistrial)
     return(triallist)
 
 
@@ -248,7 +266,7 @@ def fit_tree(last_leaves, ntrials):
     # check sanity
     if n_rep_branches < 1:
         print('WARNING: your expreiment has too few trials' +
-              '(%d) to accomidate all branches(%d)' % (ntrials, nperms))
+              ('(%d) to accomidate all branches(%d)' % (ntrials, nperms)))
         n_rep_branches = 1
     elif n_rep_branches != int(n_rep_branches):
         print(('WARNING: your expreiment will not be balanced\n\t' +

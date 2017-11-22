@@ -81,6 +81,7 @@ def fit_dist(nelm, freq, nsamples):
 
     return(freq)
 
+
 def zeno_dichotomy(n):
     """
     geom distriubtion by halving each next step
@@ -94,21 +95,21 @@ def zeno_dichotomy(n):
         return [n] + zeno_dichotomy(n)
 
 
-def list_to_length_n(steps, nsamples, msg):
-    ndur = len(steps)
-    times_more = math.floor(nsamples/ndur)
-    add_more = ndur % nsamples
-    origsteps = steps
-    dur = origsteps + (origsteps * (times_more-1))
+def list_to_length_n(inlist, nsamples, msg):
+    n = len(inlist)
+    times_more = math.floor(nsamples/n)
+    add_more = nsamples % n
+    orig = inlist
+    out = inlist * times_more
 
-    # we'll need to add at least one more (maybe truncatd) set of steps
+    # we'll need to add at least one more (maybe truncatd) set of inlist
     # if we are mod==0, it should be full, set add_more to the full length
-    if add_more == 0:
-        add_more = len(origsteps)
+    if add_more != 0:
+        random.shuffle(orig)
+        out += orig[0:add_more]
 
-    random.shuffle(origsteps)
-    dur = dur + origsteps[0:add_more]
-    return(dur)
+    # print('%d * %d (+ %d)' % (n, times_more, add_more))
+    return(out)
 
 
 def reduce_sum(v):

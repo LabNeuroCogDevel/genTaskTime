@@ -23,10 +23,6 @@ def gen_dist(steps, freq, nsamples, dist, parseid="gen_dist"):
     """
     generate distirubtion
     """
-    # None is uniform
-    if dist is None or dist not in ['u', 'g']:
-        print('unkown distribution, using uniform')
-        dist = 'u'
     # if we have an int, make it a list
     if type(steps) == int:
         steps = [steps]
@@ -40,7 +36,7 @@ def gen_dist(steps, freq, nsamples, dist, parseid="gen_dist"):
            "randomly picking") % (parseid, ndur, nsamples)
 
     if dist == 'g':
-        if any([x != 1 for x in freq]):
+        if freq is not None and any([x != 1 for x in freq]):
             print("WARNING: asked for distribution, but provided frequences" +
                   "in duration! Disregarding freqs, generating geometric for" +
                   "%s nsamples" % nsamples)
@@ -51,6 +47,8 @@ def gen_dist(steps, freq, nsamples, dist, parseid="gen_dist"):
 
     dur = list_to_length_n(steps, nsamples, msg)
     return(dur)
+
+
 
 
 # what we need to store for each event entering our event tree
@@ -74,15 +72,15 @@ class EventNode(anytree.NodeMixin):
 
     # count up and make list of parents to traverse
     def set_last(self):
-        self.last=True
-        self.need_total=1
-        p=self.parent
-        self.parents=self.path
-        #self.parents=[]
+        self.last = True
+        self.need_total = 1  # TODO: should be self.nrep?
+        p = self.parent
+        self.parents = self.path
+        # self.parents=[]
         while p:
-            self.need_total*=int(p.nrep)
-            #self.parents.append(p)
-            p=p.parent
+            self.need_total *= int(p.nrep)
+            # self.parents.append(p)
+            p = p.parent
         return(self)
 
     # how many times is this node hit on it's children branches
@@ -118,7 +116,8 @@ class EventNode(anytree.NodeMixin):
             node.branch_reps = branch_reps
         return(node.branch_reps)
 
-    # TODO: handle distibutions
+    # TODO: better handle distibutions
+    # TODO: parse_dur every iteration
     def parse_dur(self, nperms):
         # ## how many durs do we need?
         # -- should probably stop if do not have total_reps
@@ -127,6 +126,20 @@ class EventNode(anytree.NodeMixin):
                                    getattr(self, "nrep", 0)))
 
         nsamples *= nperms
+
+        if self.verbose > 1:
+            print('have %d samples to spread for %s' % (nsamples, self.dur))
+
+        # get dist
+        try:
+            dist = self.dur['dist']
+        except TypeError:
+            dist = None
+        # what is the distribution
+        # None is uniform
+        if dist is None or dist not in ['u', 'g']:
+            print('unkown distribution, using uniform')
+            dist = 'u'
 
         if type(self.dur) in [float, int, type(None)]:
             dur = [self.dur] * nsamples
@@ -138,40 +151,25 @@ class EventNode(anytree.NodeMixin):
             # todo distribute for others (just uniform now)
             a = float(self.dur['min'])
             b = float(self.dur['max'])
-            intv = (b-a)/(nsamples-1)
-            dur = [a+i*intv for i in range(nsamples)]
+            # TODO: round intv w.r.t granularity
+            if dist == 'u':
+                intv = (b-a)/(nsamples-1)
+                dur = [a+i*intv for i in range(nsamples)]
+            else:
+                freqs = zeno_dichotomy(nsamples)
+                intv = (b-a)/(len(freqs)-1)
+                nums = [a+i*intv for i in range(len(freqs))]
+                dur = gen_dist(nums, None, nsamples, dist, self.name)
 
         elif self.dur['steps']:
             steps = unlist_grammar(self.dur['steps'])
-            # todo, distribute
-            # print("FREQ: " + str(self.dur))
             nums = [float(x['num']) for x in steps]
             freqs = [x['freq'] if x['freq'] is not None else 1 for x in steps]
-            dur = rep_a_b_times(nums, freqs)
+            dur = gen_dist(nums, freqs, nsamples, dist, self.name)
 
-            ndur = len(dur)
-            if ndur > nsamples:
-                msg = ("WARNING: %s:" +
-                       "you have more durations (%d) than trials (%d). " +
-                       "randomly truncating")
-                print(msg %
-                      (self.name, ndur, nsamples))
-            # fit what was given into what we have
-            if ndur < nsamples:
-                times_more = math.floor(nsamples/ndur)
-                add_more = ndur % nsamples
-                origdur = dur
-                dur = origdur + (origdur * (times_more-1))
-                random.shuffle(origdur)
-                if add_more > 0:
-                    msg = ("WARNING: %s: num durations given (%d)" +
-                           "doesn't fit with number of events (%d) equally. " +
-                           "randomly picking")
-                    print(msg % (self.name, ndur, nsamples))
-                    dur = dur + origdur[0:add_more]
-                else:
-                    dur = dur + origdur
-
+        if self.verbose > 0:
+            print("shuffling %s (%d/%d): %s" %
+                  (self.name, len(dur), nsamples, dur))
         random.shuffle(dur)
         dur = dur[0:nsamples]
         self.dur_dist = dur
@@ -185,9 +183,9 @@ class EventNode(anytree.NodeMixin):
                   self.name)
             return(0)
         else:
+            dur = self.dur_dist.pop()
+            if self.verbose > 10:
+                print('%s: %s --> %.01f' % (self.name, self.dur_dist, dur))
             #if not self.picked: self.picked=0
             #self.picked+=1
-            return(self.dur_dist.pop())
-
-
-
+            return(dur)
