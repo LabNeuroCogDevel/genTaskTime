@@ -10,7 +10,9 @@ import sys
 import os
 from .EventNode import EventNode
 from .EventGrammar import unlist_grammar, parse, parse_settings
+from .badmath import print_uniq_c
 # import itertools
+import numpy as np
 
 
 def parse_events(astobj):
@@ -75,7 +77,7 @@ def mkChild(parents, elist, verb=1):
                 if verb > 1:
                     print("\t\tadding child %s to parent %s" % (name, p))
                 children.append(EventNode(name, parent=p,
-                                nrep=freq, dur=0))
+                                nrep=freq, dur=0, verbose=verb))
 
         # continue down the line
         # TODO: fix bad hack; break out of list
@@ -96,16 +98,20 @@ def events_to_tree(events, verb=1):
     for event in events:
         if last_leaves is None:
             last_leaves = [EventNode(event['eventname'],
-                           dur=event['dur'], parent=None)]
+                           dur=event['dur'], parent=None, verbose=verb)]
         else:
             last_leaves = [EventNode(event['eventname'],
-                           dur=event['dur'], parent=r) for r in last_leaves]
+                           dur=event['dur'], parent=r,
+                           verbose=verb) for r in last_leaves]
 
         if event['eventtypes']:
             if verb > 1:
                 print('making children for %s' % last_leaves)
                 pprint.pprint(event['eventtypes'])
             last_leaves = mkChild(last_leaves, event['eventtypes'], verb)
+
+    if len(last_leaves) > 0:
+        last_leaves[0].root.verbose = verb
 
     return(last_leaves)
 
@@ -305,19 +311,29 @@ def write_list_to_file(triallist, seed, start_at_time, writedur=True):
 
 
 # settings stores 'rundur' and maybe granularity and finish_with_left
-def add_itis(triallist, settings):
+def add_itis(triallist, settings, verb=1):
     # [ [{'fname': '', 'dur': '' }, ...], ... ]
-    all_durs = [o['dur'] for x in triallist for o in x]
-    task_dur = functools.reduce(lambda x, y: x + y, all_durs)
+    # previously computed like
+    # all_durs = [o['dur'] for x in triallist for o in x]
+    # task_dur = functools.reduce(lambda x, y: x + y, all_durs)
+    each_event_dur = [sum([o['dur'] for o in x]) for x in triallist]
+    avgtaskdur = np.mean(each_event_dur)
+    print_uniq_c(each_event_dur)
+    task_dur = sum(each_event_dur)
 
     allocated_time = float(settings['rundur'])
     rundur = allocated_time - settings['stoppad'] - settings['startpad']
     iti_time = rundur - task_dur
     if iti_time < 0:
-        print("ERROR: total event time (%.2f) does not fit in avalible run time (%.2f) !" %
-              (task_dur, rundur))
-        print("\tYou want %(ntrial)d trials in %(rundur)f time with min iti %(miniti)d and padding %(startpad)f+%(stoppad)f" % settings)
+        print("ERROR: total event time (%.2f) does not fit in avalible run time (%.2f) (avg trial dur = %.2f == %.2f) !" %
+              (task_dur, rundur, task_dur/settings['ntrial'], avgtaskdur))
+        print("\tYou want %(ntrial)d trials in %(rundur)f time with min iti %(miniti)f and padding %(startpad)f+%(stoppad)f" % settings)
+        pprint.pprint(np.unique(sorted(each_event_dur)))
+        if verb > 1:
+            print('trial x event list:')
+            pprint.pprint(triallist)
         sys.exit(1)
+
         # TODO: maybe return None. exitings a bit extreme for a module!
         #  or maybe just adjust?
         rundur = task_dur
@@ -397,7 +413,7 @@ def gen_events(last_leaves, settings, verb=1):
     min_iti = settings['miniti']
 
     triallist = event_tree_to_list(last_leaves, n_rep_branches, min_iti)
-    triallist = add_itis(triallist, settings)
+    triallist = add_itis(triallist, settings, verb)
 
     if verb > 0:
         print("single run: %d reps of (%d final branches, seen a total of %d times)" %

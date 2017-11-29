@@ -2,6 +2,7 @@
 # ## bad math
 import random
 import math
+import numpy
 import functools
 
 
@@ -123,3 +124,8 @@ def rep_a_b_times(a, b):
     listoflist = [[a[i]]*int(b[i]) for i in range(len(a))]
     r = reduce_sum(listoflist)
     return(r)
+
+
+def print_uniq_c(arr):
+    u = numpy.array(numpy.unique(arr, return_counts=True)).T
+    print("\n".join(["%s %s" % (x, y) for x, y in u]))

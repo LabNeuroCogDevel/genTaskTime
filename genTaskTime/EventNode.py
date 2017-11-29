@@ -1,6 +1,7 @@
 import anytree
 import random
-from .badmath import zeno_dichotomy, fit_dist, list_to_length_n, rep_a_b_times
+from .badmath import (zeno_dichotomy, fit_dist, list_to_length_n,
+                      rep_a_b_times, print_uniq_c)
 
 
 def unlist_grammar(e):
@@ -40,18 +41,17 @@ def gen_dist(steps, freq, nsamples, dist, parseid="gen_dist"):
                   "%s nsamples" % nsamples)
         dist_array = zeno_dichotomy(nsamples)
         freq = fit_dist(len(steps), dist_array, nsamples)
+
     # elif dist == 'e':
-    dur = rep_a_b_times(steps, freq)
+    steps = rep_a_b_times(steps, freq)
+    print('%s: initial dur before resample: %s' % (parseid, steps))
 
     dur = list_to_length_n(steps, nsamples, msg)
     return(dur)
 
 
-
-
 # what we need to store for each event entering our event tree
 class EventNode(anytree.NodeMixin):
-
 
     def __init__(self,name,dur,parent=None,nrep=1,writeout=True,extra=None,verbose=1):
         if(nrep == None): nrep=1
@@ -136,7 +136,7 @@ class EventNode(anytree.NodeMixin):
         # what is the distribution
         # None is uniform
         if dist is None or dist not in ['u', 'g']:
-            print('unkown distribution, using uniform')
+            print('unknown distribution, using uniform')
             dist = 'u'
 
         if type(self.dur) in [float, int, type(None)]:
@@ -164,10 +164,17 @@ class EventNode(anytree.NodeMixin):
             nums = [float(x['num']) for x in steps]
             freqs = [x['freq'] if x['freq'] is not None else 1 for x in steps]
             dur = gen_dist(nums, freqs, nsamples, dist, self.name)
+            if self.verbose > 10:
+                print('have steps %s' % nums)
+                print('into freqs %s' % freqs)
+                print('total n %s' % nsamples)
+                print('final durs %s' % dur)
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             print("shuffling %s (%d/%d): %s" %
                   (self.name, len(dur), nsamples, dur))
+            print_uniq_c(dur)
+
         random.shuffle(dur)
         dur = dur[0:nsamples]
         self.dur_dist = dur

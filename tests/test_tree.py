@@ -3,6 +3,7 @@
 import genTaskTime as gtt
 import pytest
 from helpers import n_trials, sumdur, file_counts
+import numpy as np
 
 
 def test_trial_uneven_branch_repcnt():
@@ -41,6 +42,26 @@ def test_trial_uneven_branch():
 
     assert n_trials(triallist) == 6
     assert sumdur(triallist) == pytest.approx(60, .001)
+
+
+def test_dur_foundation():
+    steps = [1, 2]
+    freq = [3, 4]
+    reps = gtt.rep_a_b_times(steps, freq)
+    finallist = gtt.list_to_length_n(reps, 14, 'msg')
+    (vals, cnts) = np.unique(finallist, return_counts=True)
+    assert all(vals == [1., 2.])
+    assert all(cnts == [6., 8.])
+
+
+def test_trial_uneven_dur():
+    s = "<60/4 stepsize:1> cue=[3x 1, 1x 2]"
+    (triallist, settings) = gtt.str_to_triallist(s)
+
+    alldurs = [x[0]['dur'] for x in triallist if x[0]['fname'] is not None]
+    (vals, cnts) = np.unique(alldurs, return_counts=True)
+    assert all(vals == [1., 2.])
+    assert all(cnts == [3., 1.])
 
 
 def test_trial_uneven_branch_rep_branches():
