@@ -59,6 +59,7 @@ ext_options =
             | '@' tr:num
             | 'pad:' startpad:num ['+' stoppad:num]
             | 'iti:' miniti:num [ '-' maxiti:num ] [ 'mu' avgiti:num ]
+            |  iti_never_first:'iti_never_first'
             | 'stepsize:' granularity:num
             ;
 # sequential ';' events that build the tree
@@ -160,16 +161,26 @@ def parse_settings(astobj):
     defopts = {'tr': None,
                'miniti': .01, 'maxiti': 9e9,
                'startpad': 0, 'stoppad': 0,
-               'granularity': .01
+               'granularity': .01,
+               'iti_never_first': False,
                }
+
+    flagnames = 'iti_never_first'
 
     settings = {**settings, **defopts}
     # overwrite setting options with any given
     if(settings['opts']):
+        # floats
         opts = {k: float(v) for x in unlist_grammar(settings['opts'])
                 for k, v in x.items()
-                if v}
-        settings = {**settings, **opts}
+                if v and v not in flagnames}
+
+        # flags (bools)
+        flags = {k: True for x in unlist_grammar(settings['opts'])
+                 for k, v in x.items()
+                 if v and v in flagnames}
+
+        settings = {**settings, **opts, **flags}
 
     settings['ntrial'] = int(settings['ntrial'])
     settings['rundur'] = float(settings['rundur'])

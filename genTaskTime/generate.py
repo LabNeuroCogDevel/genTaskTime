@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # -*- coding: utf-8 -*-
 import random
 import anytree
@@ -173,15 +174,19 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
                 n = n.master_node
                 if n.dur != 0:
                     if fname:
-                        thistrial.append({'fname': fname, 'dur': dur})
+                        thistrial.append({'fname': fname,
+                                          'dur': dur,
+                                          'type': 'event'})
                     fname = []
                     dur = 0
                 fname.append(n.name)
                 dur += n.next_dur()
             if fname:
-                thistrial.append({'fname': fname, 'dur': dur})
+                thistrial.append({'fname': fname, 'dur': dur, 'type': 'event'})
             if min_iti is not None and min_iti > 0:
-                thistrial.append({'fname': None, 'dur': min_iti})
+                thistrial.append({'fname': None,
+                                  'dur': min_iti,
+                                  'type': 'iti'})
 
             triallist.append(thistrial)
             # for all the counts of of branch
@@ -192,13 +197,67 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
     return(triallist)
 
 
-def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
+def iti_list(triallist):
+    """
+    @param triallist
+    returns list of iti durations
+    """
+    itis = []
+    iti_dur = 0
+    for x in triallist:
+        if x[0]['type'] == 'event' and iti_dur > 0:
+            itis.append(iti_dur)
+            iti_dur = 0
+        for xx in x:
+            if xx['type'] == 'iti':
+                iti_dur += xx['dur']
+    if iti_dur > 0:
+        itis.append(iti_dur)
+    return(itis)
 
+
+def _shuffle_triallist(triallist, keepfirst=False):
+    """
+    shuffle the list, optionally keeping the first item first
+    """
+    print("what do we do with first? keep?")
+    print(keepfirst)
+    if keepfirst:
+        firstevent = triallist.pop(0)
+        random.shuffle(triallist)
+        triallist = [firstevent] + triallist
+    else:
+        random.shuffle(triallist)
+
+    return(triallist)
+
+
+def shuffle_triallist(settings, triallist, seed=None, maxiterations=500):
     # shuffle up the events, optionally with a provided seed
-    if seed:
-        random.Random(seed)
-    random.shuffle(triallist)
-    # TODO: reshuffle while maxiti
+    if seed is None:
+        seed = random.randrange(sys.maxsize)
+    random.seed(seed)
+
+    triallist = _shuffle_triallist(triallist, settings['iti_never_first'])
+
+    inum = 1
+    warnevery = 20
+
+    # reshuffle while too many itis in a row
+    while max(iti_list(triallist)) > settings['maxiti']:
+        triallist = _shuffle_triallist(triallist, settings['iti_never_first'])
+        inum += 1
+        if(inum % warnevery == 0):
+            mgs = "WARNING: shuffle event list with seed %d has gone " +\
+                  "%d iterations without matching critera (maxiti: %f)"
+            print(mgs % (seed, warnevery, settings['maxiti']))
+        if(inum >= maxiterations):
+            return((None, seed))
+
+    return((triallist, seed))
+
+
+def write_list_to_file(triallist, seed, start_at_time, writedur=True):
     # initialize start time and dict to hold output file handles
     total_time = start_at_time
     write_to = {}
@@ -248,23 +307,38 @@ def write_list_to_file(triallist, start_at_time, seed=None, writedur=True):
 def add_itis(triallist, settings):
     # [ [{'fname': '', 'dur': '' }, ...], ... ]
     all_durs = [o['dur'] for x in triallist for o in x]
-    total_dur = functools.reduce(lambda x, y: x + y, all_durs)
+    task_dur = functools.reduce(lambda x, y: x + y, all_durs)
 
-    rundur = float(settings['rundur'])
-    rundur = rundur - settings['stoppad']
-    if total_dur > (rundur - settings['startpad']):
-        msg = "ERROR: total event time (%.2f) is greater than run time (%.2f)!"
-        print(msg % (total_dur, rundur))
-        # TODO: maybe return None. exitings a bit extreme for a module!
+    allocated_time = float(settings['rundur'])
+    rundur = allocated_time - settings['stoppad'] - settings['startpad']
+    iti_time = rundur - task_dur
+    if iti_time < 0:
+        print("ERROR: total event time (%.2f) does not fit in avalible run time (%.2f) !" %
+              (task_dur, rundur))
+        print("\tYou want %(ntrial)d trials in %(rundur)f time with min iti %(miniti)d and padding %(startpad)f+%(stoppad)f" % settings)
         sys.exit(1)
-        # TODO: print info about
-        #  stoppad + startpad and min_iti n_rep_branches
-        rundur = total_dur  # TODO, maybe die instead?
+        # TODO: maybe return None. exitings a bit extreme for a module!
+        #  or maybe just adjust?
+        rundur = task_dur
 
-    # # calculate number of ITIs we need. make them and add to triallist
-    n_iti = int((rundur - total_dur)/settings['granularity'])
+    # can fill enough space given the specified maxiti?
+    # we take miniti*ntrials out of iti_time becaue they are
+    # already included in task time
+    just_task_time = iti_time - (settings['miniti'] * settings['ntrial'])
+    max_all_itis = settings['maxiti'] * settings['ntrial']
+    if just_task_time > max_all_itis:
+        msg = "ERROR: total event time (%.2f in %.2f) requires more iti " + \
+              "than max (%.2f * %d trials) can provided!"
+        print(mgs % (task_dur, rundur, settings['maxiti'], settings['ntrial']))
+        sys.exit(1)
 
-    triallist += [[{'fname': None, 'dur': settings['granularity']}]] * n_iti
+    # # calculate number of ITIs (in addition to miniti) we need.
+    # make them and add to triallist
+    n_iti = int((rundur - task_dur)/settings['granularity'])
+    triallist += [[{'fname': None,
+                    'dur': settings['granularity'],
+                    'type': 'iti'}]] * n_iti
+
     return(triallist)
 
 
@@ -336,12 +410,15 @@ def write_trials(last_leaves, settings, n_iterations=1000, verb=1):
     # set file name to seed
     # int(math.log10(sys.maxsize)) -- 18 digits
     for iter_i in range(0, n_iterations):
-        # set a seed
-        seed = random.randrange(sys.maxsize)
         # get a new trial list
         triallist = gen_events(copy.copy(last_leaves), settings, verb)
+        # shuffle with seed
+        (triallist, seed) = shuffle_triallist(settings, triallist)
+        # could not find a shuffle that worked!
+        if triallist is None:
+            continue
         # start timer after or initial rest period
-        write_list_to_file(triallist, start_at_time, seed)
+        write_list_to_file(triallist, seed, start_at_time)
 
         # TODO: run 3dDeconvolve
 
