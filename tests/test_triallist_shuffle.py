@@ -15,8 +15,18 @@ def test_shuffle_maxiti():
 
 
 def test_shuffle_seed():
-    s = "<18/4 iti:2-4> cue=[2](A,B)"
+    """
+    run shuffle 3 times on 8 things with a bunch of itis
+    if output is the same for all 3 seed seems to work
+    should also not match with a different seed
+    """
+    s = "<24/8 stepsize:.5> cue=[1](A,B)"
     (tl, settings) = gtt.str_to_triallist(s, verb=0)
     (ts1, sd) = gtt.shuffle_triallist(settings, tl, 1)
     (ts2, sd) = gtt.shuffle_triallist(settings, tl, 1)
+    (ts3, sd) = gtt.shuffle_triallist(settings, tl, 1)
+    (ts4, sd) = gtt.shuffle_triallist(settings, tl, 4000)
     assert ts1 == ts2
+    assert ts1 == ts3
+    pprint.pprint(ts4)
+    assert ts1 != ts4

@@ -159,7 +159,7 @@ def parse_settings(astobj):
     settings = dict(astobj['settings'])
 
     defopts = {'tr': None,
-               'miniti': .01, 'maxiti': 9e9,
+               'miniti': 0, 'maxiti': 9e9,
                'startpad': 0, 'stoppad': 0,
                'granularity': .01,
                'iti_never_first': False,

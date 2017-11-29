@@ -216,36 +216,36 @@ def iti_list(triallist):
     return(itis)
 
 
-def _shuffle_triallist(triallist, keepfirst=False):
+def _shuffle_triallist(triallist, myrand=random.Random(), keepfirst=False):
     """
     shuffle the list, optionally keeping the first item first
+    works inplace on triallist
     """
-    print("what do we do with first? keep?")
-    print(keepfirst)
+
     if keepfirst:
         firstevent = triallist.pop(0)
-        random.shuffle(triallist)
+        myrand.shuffle(triallist)
         triallist = [firstevent] + triallist
     else:
-        random.shuffle(triallist)
-
-    return(triallist)
+        myrand.shuffle(triallist)
 
 
-def shuffle_triallist(settings, triallist, seed=None, maxiterations=500):
-    # shuffle up the events, optionally with a provided seed
+def shuffle_triallist(settings, tl, seed=None, maxiterations=500):
+    triallist = copy.copy(tl)
+    # set the seed
     if seed is None:
         seed = random.randrange(sys.maxsize)
-    random.seed(seed)
+    myrand = random.Random(seed)
 
-    triallist = _shuffle_triallist(triallist, settings['iti_never_first'])
-
-    inum = 1
-    warnevery = 20
+    # initial shuffle, reproducable with given seed
+    keepfirst = settings['iti_never_first']
+    _shuffle_triallist(triallist, myrand, keepfirst)
 
     # reshuffle while too many itis in a row
+    inum = 1
+    warnevery = 50
     while max(iti_list(triallist)) > settings['maxiti']:
-        triallist = _shuffle_triallist(triallist, settings['iti_never_first'])
+        _shuffle_triallist(triallist, myrand, keepfirst)
         inum += 1
         if(inum % warnevery == 0):
             mgs = "WARNING: shuffle event list with seed %d has gone " +\
@@ -254,6 +254,7 @@ def shuffle_triallist(settings, triallist, seed=None, maxiterations=500):
         if(inum >= maxiterations):
             return((None, seed))
 
+    # give back the shuffle and the seed used
     return((triallist, seed))
 
 
