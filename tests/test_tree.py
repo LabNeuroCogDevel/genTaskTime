@@ -64,6 +64,15 @@ def test_trial_uneven_dur():
     assert all(cnts == [3., 1.])
 
 
+def test_trial_uneven_dur_x2():
+    s = "<60/8 stepsize:1> cue=[3x 1, 1x 2]"
+    (triallist, settings) = gtt.str_to_triallist(s)
+
+    alldurs = [x[0]['dur'] for x in triallist if x[0]['fname'] is not None]
+    (vals, cnts) = np.unique(alldurs, return_counts=True)
+    assert all(vals == [1., 2.])
+    assert all(cnts == [6., 2.])
+
 def test_trial_uneven_branch_rep_branches():
     s = "<600/12> cue=[1](A, 2x B, 3x C); end=[0]"
     (triallist, settings) = gtt.str_to_triallist(s)

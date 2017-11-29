@@ -148,7 +148,7 @@ def create_master_refs(root):
 
 
 def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
-    isverb = last_leaves[0].root.verbose > 0
+    isverb = last_leaves[0].root.verbose > 1
     if isverb:
         print('event_tree_to_list: %d leaves, %d n_reps' %
               (len(last_leaves), n_rep_branches))
@@ -169,7 +169,7 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
                l, l.count_branch_reps(),
                l.need_total, n_rep_branches,
                n_total_branch_reps)
-        if l.root.verbose > 0:
+        if l.root.verbose > 1:
             print(msg)
 
         for branch_rep_i in range(n_total_branch_reps):
@@ -318,7 +318,8 @@ def add_itis(triallist, settings, verb=1):
     # task_dur = functools.reduce(lambda x, y: x + y, all_durs)
     each_event_dur = [sum([o['dur'] for o in x]) for x in triallist]
     avgtaskdur = np.mean(each_event_dur)
-    print_uniq_c(each_event_dur)
+    if verb > 1:
+        print_uniq_c(each_event_dur)
     task_dur = sum(each_event_dur)
 
     allocated_time = float(settings['rundur'])

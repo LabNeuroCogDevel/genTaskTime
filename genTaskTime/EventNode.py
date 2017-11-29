@@ -44,7 +44,7 @@ def gen_dist(steps, freq, nsamples, dist, parseid="gen_dist"):
 
     # elif dist == 'e':
     steps = rep_a_b_times(steps, freq)
-    print('%s: initial dur before resample: %s' % (parseid, steps))
+    #print('%s: initial dur before resample: %s' % (parseid, steps))
 
     dur = list_to_length_n(steps, nsamples, msg)
     return(dur)
@@ -136,8 +136,9 @@ class EventNode(anytree.NodeMixin):
         # what is the distribution
         # None is uniform
         if dist is None or dist not in ['u', 'g']:
-            print('unknown distribution, using uniform')
             dist = 'u'
+            if self.verbose > 1:
+                print('unknown distribution, using uniform')
 
         if type(self.dur) in [float, int, type(None)]:
             dur = [self.dur] * nsamples
