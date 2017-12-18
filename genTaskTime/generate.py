@@ -210,6 +210,9 @@ def iti_list(triallist):
     """
     itis = []
     iti_dur = 0
+    if triallist is None:
+        print("WARNING: generating iti list on empty trial list")
+        return(itis)
     for x in triallist:
         if x[0]['type'] == 'event' and iti_dur > 0:
             itis.append(iti_dur)
@@ -222,21 +225,25 @@ def iti_list(triallist):
     return(itis)
 
 
-def _shuffle_triallist(triallist, myrand=random.Random(), keepfirst=False):
+def _shuffle_triallist(triallist, myrand=random.Random(), noitifirst=False):
     """
     shuffle the list, optionally keeping the first item first
     works inplace on triallist
     """
+    myrand.shuffle(triallist)
+    # do we want an iti as first?
+    if noitifirst:
+        cnt = 1
+        warnevery = 50
+        while triallist[0][0]['type'] == 'iti':
+            myrand.shuffle(triallist)
+            if(cnt % warnevery == 0):
+                mgs = "WARNING: shuffle event list: %d iterations without " +\
+                      "finiding a no-iti first version"
+                print(mgs % cnt)
 
-    if keepfirst:
-        firstevent = triallist.pop(0)
-        myrand.shuffle(triallist)
-        triallist = [firstevent] + triallist
-    else:
-        myrand.shuffle(triallist)
 
-
-def shuffle_triallist(settings, tl, seed=None, maxiterations=500):
+def shuffle_triallist(settings, tl, seed=None, maxiterations=5000):
     triallist = copy.copy(tl)
     # set the seed
     if seed is None:
@@ -244,20 +251,22 @@ def shuffle_triallist(settings, tl, seed=None, maxiterations=500):
     myrand = random.Random(seed)
 
     # initial shuffle, reproducable with given seed
-    keepfirst = settings['iti_never_first']
-    _shuffle_triallist(triallist, myrand, keepfirst)
+    noitifirst = settings['iti_never_first']
+    _shuffle_triallist(triallist, myrand, noitifirst)
 
     # reshuffle while too many itis in a row
     inum = 1
     warnevery = 50
     while max(iti_list(triallist)) > settings['maxiti']:
-        _shuffle_triallist(triallist, myrand, keepfirst)
+        _shuffle_triallist(triallist, myrand, noitifirst)
         inum += 1
         if(inum % warnevery == 0):
             mgs = "WARNING: shuffle event list with seed %d has gone " +\
                   "%d iterations without matching critera (maxiti: %f)"
             print(mgs % (seed, warnevery, settings['maxiti']))
         if(inum >= maxiterations):
+            print("ERROR: want %d interations and never found a match!" %
+                  maxiterations)
             return((None, seed))
 
     # give back the shuffle and the seed used

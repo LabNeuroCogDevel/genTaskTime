@@ -1,6 +1,38 @@
 #!/usr/bin/env python3
 import genTaskTime as gtt
 import pprint
+import helpers
+import numpy as np
+
+
+# shuffle was causing issues
+def test_dont_drop():
+    s = "<358/24 stepsize:.5 iti:1.5-2.5 iti_never_first> " + \
+        "cue=[2];" + \
+        "vgs=[2](NearLeft,NearRight,Left,Right * Indoor, Outdoor,None); " + \
+        "dly=[15x 6, 7x 8, 2x 10]; mgs=[2]"
+    (tl, settings) = gtt.str_to_triallist(s, verb=0)
+    (ts1, sd) = gtt.shuffle_triallist(settings, tl, 1)
+    pprint.pprint(ts1)
+    itis = gtt.iti_list(ts1)
+    elist = [x for x in tl if x[0]['type'] != 'iti']
+    #  --- before shuffle is correct ---
+    # iti distribution
+    assert np.max(itis) <= 2.5
+    assert np.min(itis) >= 1.5
+    # total time
+    tltotal = helpers.sumdur(tl)
+    assert abs(tltotal - 358) <= .5
+    # 24 permutations of tasks
+    assert len(elist) == 24
+    # --- after shuffle ---
+    # and we have that many tries (by iti count)
+    assert helpers.n_trials(ts1) == 24
+    pprint.pprint(ts1)
+    # we should be within our stepsize of itis
+    total = helpers.sumdur(ts1)
+    assert abs(total - 358) <= .5
+    assert len(itis) == 24
 
 
 # when we have to use all max, dont use something more than max
