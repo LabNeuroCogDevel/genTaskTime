@@ -234,6 +234,7 @@ def events_to_tree(events, verb=1) -> LastLeaves:
                 dur=event["dur"],
                 parent=r,
                 verbose=verb,
+                model=event.get("model")
                 # nrep=1-catchrat
             )
             for r in parents

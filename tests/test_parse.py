@@ -136,3 +136,27 @@ def test_trial_branch_fork():
     for names in ['cue_A_D', 'cue_B_D', 'cue_A_E', 'cue_B_E']:
         assert fc[names] == 1
     assert fc['end'] == 4
+
+
+def test_glt1():
+    s = "<10/1 glt:sum=cue+resp> cue=[2]; resp=[1]"
+    ast = gtt.parse(s)
+    settings = gtt.parse_settings(ast)
+
+    assert settings['glts'][0]['formula'] == 'cue+resp'
+    assert settings['glts'][0]['name'] == 'sum'
+
+
+def test_glt2():
+    s = "<10/1 glt:sum=cue+resp; glt:diff=resp-cue> cue=[2]; resp=[1]"
+    ast = gtt.parse(s)
+    settings = gtt.parse_settings(ast)
+
+    assert settings['glts'][0]['formula'] == 'cue+resp'
+    assert settings['glts'][1]['formula'] == 'resp-cue'
+
+
+def test_decon_model():
+    s = "<10/1 glt:diff=resp-cue> cue=[2]@GAM; resp=[1]"
+    events = gtt.parse_events(gtt.parse(s))
+    assert events[0]['model'] == 'GAM'

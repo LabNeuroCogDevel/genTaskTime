@@ -40,8 +40,13 @@ def gen_dist(steps, freq, nsamples, dist, parseid="gen_dist"):
 # what we need to store for each event entering our event tree
 class EventNode(anytree.NodeMixin):
 
-    def __init__(self,name,dur,parent=None,nrep=1,writeout=True,extra=None, verbose=1):
-        if(nrep == None): nrep=1
+    def __init__(self, name: str, dur: float,
+                 parent = None,
+                 nrep=1,
+                 writeout=True,
+                 extra=None,
+                 model: str | None = None,
+                 verbose=1):
         self.parent=parent
         self.name=name
         self.dur = dur #parse_dur(dur)
@@ -51,6 +56,8 @@ class EventNode(anytree.NodeMixin):
         self.verbose=verbose
         #self.finalized = False
         self.extra=extra
+        self.model = "dmBLOCK" if not model else model
+        self.nrep = 1 if nrep is None else nrep
 
     def __repr__(self):
         return (f"{self.name}@{self.nrep}reps" +

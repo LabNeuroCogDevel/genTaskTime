@@ -61,8 +61,19 @@ ext_options =
             | 'iti:' miniti:num [ '-' maxiti:num ] [ 'mu' avgiti:num ]
             |  iti_never_first:'iti_never_first'
             | 'stepsize:' granularity:num
+            |  glts:glts
             ;
+
+# general linear test forumlas
+glts = glt ';' glts
+     | glt
+     ;
+
+glt = 'glt:' name:name '=' formula:gltformula ;
+gltformula = /[-_0-9a-zA-Z+* ]+/ ;
+
 # sequential ';' events that build the tree
+# '~' forces None if no match (?)
 eventlist =
           | event ';' ~ eventlist
           | event '|' ~ eventlist
@@ -70,7 +81,10 @@ eventlist =
           ;
 
 # full specification for an event: "cue=[1.5](L,R){0}"
-event =  eventname:name  '='  [dur:duration] ['(' eventtypes:eventnamesx ')' ]  ['{' catchratio:num '}' ] [GLMignore:ignorechars] ;
+event =  eventname:name  '='  [dur:duration] ['(' eventtypes:eventnamesx ')' ]  ['{' catchratio:num '}' ] [ '@' model:gltmodel ]  [GLMignore:ignorechars] ;
+
+# TODO: allow params. e.g. TENT(1,5)
+gltmodel = 'dmBLOCK' | 'TENT' | 'GAM' | 'BLOCK' ;
 
 # distributions: expodential, uniform, geometric
 dist     =
@@ -168,26 +182,36 @@ def parse_settings(astobj):
                'startpad': 0, 'stoppad': 0,
                'granularity': .01,
                'iti_never_first': False,
+               'glts': []
                }
 
-    flagnames = 'iti_never_first'
+    flagnames = ['iti_never_first']
 
     settings = {**settings, **defopts}
-    # overwrite setting options with any given
-    if(settings['opts']):
-        # floats
-        opts = {k: float(v) for x in unlist_grammar(settings['opts'])
-                for k, v in x.items()
-                if v and v not in flagnames}
 
-        # flags (bools)
-        flags = {k: True for x in unlist_grammar(settings['opts'])
-                 for k, v in x.items()
-                 if v and v in flagnames}
-
-        settings = {**settings, **opts, **flags}
+    # AST has "opts" if options were given along side events
+    # pull those out into the top level when they exist
+    if settings['opts']:
+        for x in unlist_grammar(settings['opts']):
+            for k, v in x.items():
+                if not v:
+                    continue
+                if k in flagnames:
+                    settings[k] = True  # iti_never_first
+                elif k == 'glts':
+                    # single like
+                    # {'forumla', 'cue+res', 'model', None)
+                    # mulitple like
+                    # [{'forumla': ..., 'model': ...}, ';', ... ]
+                    if type(v) is tatsu.ast.AST:
+                        settings['glts'] = [v]
+                    else:
+                        # discard ';' separator. all other elements should be dict
+                        settings['glts'] = [glt for glt in v if glt != ';']
+                else:  # TODO: not best way to assume float?
+                    settings[k] = float(v)
 
     settings['ntrial'] = int(settings['ntrial'])
     settings['rundur'] = float(settings['rundur'])
 
-    return(settings)
+    return settings
