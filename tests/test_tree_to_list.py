@@ -2,6 +2,7 @@
 import genTaskTime as gtt
 import pytest
 import pandas as pd
+from genTaskTime.TrialList import triallist_to_df, df_to_1D
 from helpers import dummydur
 
 
@@ -27,7 +28,7 @@ def test_catch_triallist():
     (n_rep_branches, nperms) = last_leaves.fit_tree(ntrial)
     last_leaves.fit_tree(ntrial)
 
-    # also see gen_events()
+    # also see last_leaves.to_triallist
     elist = last_leaves.event_tree_to_list(n_rep_branches, min_iti=0)
     # quick dumb counts
     cnt = {}
@@ -50,7 +51,7 @@ def test_triallist_to_df():
                   {'fname': None, 'dur': 1},   # 11
                   {'fname': 'A',  'dur': 3}]]  # 14
 
-    edf = gtt.triallist_to_df(triallist, 0)
+    edf = triallist_to_df(triallist, 0)
     assert edf.shape[0] == 6  # iti collapsed
     assert edf['event'].to_list() == ['A', '__iti__', 'B', 'B', '__iti__', 'A']
 
@@ -59,7 +60,7 @@ def test_df_to_1D():
     edf = pd.DataFrame({'event': ['__iti__', 'A', 'A', 'B'],
                         'dur':   [        5,   5,   1,  1],
                         'onset': [        0,   5,  10, 11]})
-    onsets_list = gtt.df_to_1D(edf, savedir=None)
+    onsets_list = df_to_1D(edf, savedir=None)
     assert onsets_list['A.1D'] == ['5.00:5.00', '10.00:1.00']
     assert onsets_list['B.1D'] == ['11.00:1.00']
     assert onsets_list.get('__iti__.1D') is None

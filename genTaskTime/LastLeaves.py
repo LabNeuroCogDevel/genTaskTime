@@ -4,6 +4,7 @@ import pprint
 import re
 from .EventNode import EventNode, create_master_refs
 from .EventGrammar import unlist_grammar
+from .TrialList import add_itis, TrialList
 
 
 def rand_round(val, myrand=None):
@@ -39,10 +40,12 @@ class LastLeaves(list):
         else:
             return str(self)
 
-    def event_tree_to_list(self, n_rep_branches, min_iti) -> list[dict]:
+    def event_tree_to_list(self, n_rep_branches, min_iti) -> TrialList:
         """
         Make a list of trials by
           making n_re_branches passes of the EventNode list (LastLeaves)
+
+        cf. to_triallist (wraps this. uses settings, adds itis)
 
         Each trial is a list of event dicts with keys 'fname','dur', and 'type'
         type is either 'iti' or 'event'
@@ -181,9 +184,33 @@ class LastLeaves(list):
 
         return (n_rep_branches, nperms)
 
+    def to_triallist(self, settings: dict, verb=1) -> TrialList:
+        """
+        Use settings to create list of trials
+        wraps event_tree_to_list and add_itis
+        """
+        # settings
+        ntrials = settings["ntrial"]
 
-# TODO: this should be the __init__ constructor for LastLeaves?
+        # update tree for the number of trials we have
+        # updates the nodes of tree
+        (n_rep_branches, nperms) = self.fit_tree(ntrials)
+
+        min_iti = settings["miniti"]
+
+        triallist = self.event_tree_to_list(n_rep_branches, min_iti)
+        triallist = add_itis(triallist, settings, verb)
+
+        if verb > 0:
+            print(
+                "single run: %d reps of (%d final branches, seen a total of %d times)"
+                % (n_rep_branches, len(self), nperms)
+            )
+        return triallist
+
+
 def events_to_tree(events, verb=1) -> LastLeaves:
+    # TODO: this should be the __init__ constructor for LastLeaves?
     """
     @param events 'allevents' AST from parse_events/unlist_grammar
     @param verb    verbosity (level > 1 prints extra/debug info)
