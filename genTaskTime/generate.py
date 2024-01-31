@@ -56,7 +56,7 @@ def mkChild(parents, elist, verb=1):
         # should check for
         if type(seitem['subevent']) != list:
             if verb > 1:
-                print('item not a list, coercing: %s' % seitem['subevent'])
+                print('item not a list, coercing: %s' % str(seitem['subevent']))
             seitem['subevent'] = [seitem['subevent']]
 
         these_subevets = unlist_grammar(seitem['subevent'])
@@ -94,6 +94,13 @@ def mkChild(parents, elist, verb=1):
 
 # for a ast list of events, build a tree
 def events_to_tree(events, verb=1):
+    """
+    Generate list of EventNodes representing terminal tree leaves.
+    Each leaf represents a the combination of events describing a single run.
+
+    Input from parse_events (unlist_grammar of 'allevents' from AST).
+    20240131: change in representation? updated libaries fails many tests
+    """
     last_leaves = None
     for event in events:
         if last_leaves is None:

@@ -1,21 +1,8 @@
 import anytree
 import random
+from .EventGrammar import unlist_grammar
 from .badmath import (zeno_dichotomy, fit_dist, list_to_length_n,
                       rep_a_b_times, print_uniq_c)
-
-
-def unlist_grammar(e):
-    final = []
-    if type(e) == list:
-        for e2 in e:
-            r = unlist_grammar(e2)
-            if r:
-                final.extend(r)
-    elif type(e) == str:
-        return([])
-    else:
-        final.append(e)
-    return(final)
 
 
 def gen_dist(steps, freq, nsamples, dist, parseid="gen_dist"):

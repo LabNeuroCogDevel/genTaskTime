@@ -139,16 +139,21 @@ num = /\d+\.?\d*/ | /\.\d+/ ;
 
 def unlist_grammar(e):
     final = []
-    if type(e) == list:
+    if type(e) in [list, tuple]:
         for e2 in e:
             r = unlist_grammar(e2)
             if r:
                 final.extend(r)
-    elif type(e) == str:
-        return([])
-    else:
+    elif type(e) is str:
+        # skip ';' and '|'? 20240131: TODO need to do different things with ; or |
+        return []
+    elif type(e) is tatsu.ast.AST:
         final.append(e)
-    return(final)
+    else:
+        # 20240131: debugging. do not expect to hit this?
+        print(f"unexpected unlist type '{type(e)}'!")
+        final.append(e)
+    return final
 
 
 def parse(timingdesc):

@@ -1,9 +1,40 @@
 #!/usr/bin/env python3
 # import pytest
 import genTaskTime as gtt
+from genTaskTime.EventGrammar import unlist_grammar
 import pytest
 from helpers import n_trials, sumdur, file_counts
 import numpy as np
+
+
+def test_event_parse():
+    """ pull out events. includes separator ';' or '|' """
+    s = "<60/6> cue=[1]; end=[3]"
+    astobj = gtt.parse(s)
+    # ['cue' ';' 'end']
+    assert len(astobj['allevents']) == 3
+
+    events = gtt.parse("<60/6> cue=[1](A,B); end=[3]")['allevents']
+    assert len(events) == 3
+
+    events = gtt.parse("<60/6> cue=[1] | end=[3]")['allevents']
+    assert len(events) == 3
+
+
+def test_event_unlist():
+    events = unlist_grammar(gtt.parse("<60/6> cue=[1]; end=[3]")['allevents'])
+    assert len(events) == 2
+
+    events = unlist_grammar(gtt.parse("<60/6> cue=[1](A,B); end=[3]")['allevents'])
+    assert len(events) == 2
+
+
+def test_simple_tree():
+    s = "<60/6> cue=[1]; end=[3]"
+    # parse
+    events = gtt.parse_events(gtt.parse(s))
+    last_leaves = gtt.events_to_tree(events, 99)
+    assert last_leaves[0].name == 'end'
 
 
 def test_trial_uneven_branch_repcnt():
