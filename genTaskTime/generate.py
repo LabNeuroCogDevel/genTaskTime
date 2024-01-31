@@ -31,13 +31,13 @@ def parse_events(astobj):
 def mkChild(parents, elist, verb=1):
     # tmp copy because we're poping off it
     subevent_list = unlist_grammar(copy.deepcopy(elist))
-    if type(parents) != list:
-        print('I dont think parents are a list, tye are %s; %s' %
+    if type(parents) not in [list, tuple]:
+        print('mkChild: parent type=%s, expected list: %s' %
               (type(parents), parents))
         parents = [parents]
 
     children = parents
-    if type(subevent_list) != list:
+    if type(subevent_list)  not in [list, tuple]:
         subevent_list = [subevent_list]
     if len(subevent_list) > 0:
         children = []
@@ -45,25 +45,26 @@ def mkChild(parents, elist, verb=1):
             print("popping from: %s" % subevent_list)
         seitem = subevent_list.pop(0)
         # skip '*'
-        if type(seitem) == str:
-            print('skipping *')
+        if type(seitem) is str:
+            print(f"mkChild: skipping str '{seitem}'")
             seitem = subevent_list.pop(0)
 
         if verb > 1:
-            print("have: %s" % seitem)
+            print("mkChild on %s" % seitem)
 
         # if we only have 1 subevent, still need to treat it like a list
         # should check for
-        if type(seitem['subevent']) != list:
+        if type(seitem['subevent']) not in [list, tuple]:
             if verb > 1:
-                print('item not a list, coercing: %s' % str(seitem['subevent']))
+                print(f"mkChild: item type={type(seitem['subevent'])} not list/tuple")
+                print('coercing: %s' % str(seitem['subevent']))
             seitem['subevent'] = [seitem['subevent']]
 
         these_subevets = unlist_grammar(seitem['subevent'])
         for sube_info in these_subevets:
-            if type(sube_info) == str:
+            if type(sube_info) is str:
                 if verb > 1:
-                    print("\tskipping '")
+                    print(f"\tskipping {sube_info} (expect == ')")
                 continue  # skip ','
 
             if verb > 1:
@@ -120,7 +121,7 @@ def events_to_tree(events, verb=1):
     if len(last_leaves) > 0:
         last_leaves[0].root.verbose = verb
 
-    return(last_leaves)
+    return last_leaves
 
 
 # return a unique string for a node

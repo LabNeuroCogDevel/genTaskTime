@@ -35,6 +35,19 @@ def test_simple_tree():
     events = gtt.parse_events(gtt.parse(s))
     last_leaves = gtt.events_to_tree(events, 99)
     assert last_leaves[0].name == 'end'
+    assert len(last_leaves) == 1
+
+
+def test_tree_branch():
+    s = "<60/6> cue=[1](A, B); end=[3]"
+    astobj = gtt.parse(s)
+    events = gtt.parse_events(astobj)
+    last_leaves = gtt.events_to_tree(events, 99)
+    # cue_A+end
+    # cue_B+end
+    assert len(last_leaves) == 2
+    assert last_leaves[0].name == 'end'
+    assert last_leaves[1].name == 'end'
 
 
 def test_trial_uneven_branch_repcnt():
