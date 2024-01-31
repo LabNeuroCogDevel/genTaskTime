@@ -6,6 +6,7 @@ from genTaskTime.generate import mkChild
 import pytest
 from helpers import n_trials, sumdur, file_counts
 import numpy as np
+import anytree
 
 
 def test_event_parse():
@@ -61,7 +62,7 @@ def test_catch_tree():
     last_leaves = gtt.events_to_tree(events, 99)
     # cue; cue->end
     assert len(last_leaves) == 2
-    assert last_leaves[1].name == '__catch__'
+    assert last_leaves[1].name == '__catch__1'
 
 
 def test_tree_branch():
@@ -124,6 +125,22 @@ def test_trial_uneven_branch_repcnt_catch():
     # get a list of all trials
     # triallist = gtt.event_tree_to_list(last_leaves, n_rep_branches,
     #                                    settings['miniti'])
+
+def test_2catch():
+    s = "<60/12> cue=[1]{.3}; trg=[2]{.2}; end=[3]"
+    events = gtt.parse_events(gtt.parse(s))
+    last_leaves = gtt.events_to_tree(events, 99)
+    assert len(last_leaves) == 3
+
+
+def test_2catch_tree():
+    s = "<60/12> cue=[1]{.3}; trg=[2]{.2}; end=[3]"
+    ntrial = 12  # hard code to match above
+    events = gtt.parse_events(gtt.parse(s))
+    last_leaves = gtt.events_to_tree(events, 99)
+    (n_rep_branches, nperms) = gtt.fit_tree(last_leaves, ntrial)
+    print(anytree.RenderTree(last_leaves[0].root))
+    assert nperms == 3  # cue+catch, cue+trg+catch, cue+trg+end
 
 
 def test_trial_uneven_branch():

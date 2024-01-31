@@ -123,6 +123,7 @@ def events_to_tree(events, verb=1):
     20240131: change in representation? updated libaries fails many tests
     """
     last_leaves = None
+    catch_count = 0
     for event in events:
         catchrat = float(event['catchratio']) if event['catchratio'] else 0
 
@@ -152,13 +153,15 @@ def events_to_tree(events, verb=1):
                 pprint.pprint(event['eventtypes'])
             last_leaves = mkChild(last_leaves, event['eventtypes'], verb)
 
-        # if catch trials should end here
-        if catchrat > 0 :
+        # if catch trials, should end here
+        # set_last() will set node.last = True
+        if catchrat > 0:
             print(last_leaves)
-            catch_nodes = [EventNode('__catch__',
+            catch_count += 1
+            catch_nodes = [EventNode(f'__catch__{catch_count}',
                            dur=0, nrep=catchrat, parent=r,
                            verbose=verb).set_last()
-                           for r in last_leaves]
+                           for r in last_leaves if not r.last]
 
             if verb > 0:
                 print(f'{event["name"]}: appending {len(catch_nodes)} catch nodes')
@@ -172,10 +175,17 @@ def events_to_tree(events, verb=1):
     return last_leaves
 
 
-# return a unique string for a node
-# currently just use that nodes name
 def uniquenode(n):
-    return('%s' % n.name)  # '%s %s'%(n.name,n.dur)
+    """
+    Unique string for a node that might be shared across end leaves
+    currently just use that nodes name
+    """
+    return str(n.name)
+    # catch names should be unique for what is caught
+    # in cue(ring,rew){.3}, cur_ring-catch, cue_new-catch are the same
+    # so not this:
+    # if n.name == "__catch__":
+    #     return "catch" + "_".join([x.name for x in n.path])
 
 
 def create_master_refs(root):
