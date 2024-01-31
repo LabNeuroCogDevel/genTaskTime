@@ -439,10 +439,19 @@ def rand_round(val, myrand=None):
     return int(val + rand)
 
 
-def fit_tree(last_leaves, ntrials, myrand=MYRAND):
+def fit_tree(last_leaves, ntrials: int, myrand=None):
     """
+    @param last_leaves list of nodes, each the end of a tree
+    @param ntrials     total trials to fit into run
+    @param myran       random seed, see MYRAND
+    @returns           tuple (n_rep_branches, nperms)
+      nperms         - total count need to represent all branches
+                       normalized to nreps; accounts for uneven repeats
+      n_rep_branches - how many repeats f/all branches(ntrials/nperms)
+                       input for event_tree_to_list
+
     update tree for the number of trials we have
-    updates the nodes of tree
+    and updates each node of the tree (set_last)
     """
     # how many times do we go down the tree?
     nperms = 0
@@ -460,9 +469,11 @@ def fit_tree(last_leaves, ntrials, myrand=MYRAND):
               ('(%d) to accomidate all branches(%d)' % (ntrials, nperms)))
         n_rep_branches = 1
     elif n_rep_branches != int(n_rep_branches):
-        print(('WARNING: your expreiment will not be balanced\n\t' +
-               '%d trials / %d event branches is not a whole number'
-               '(%f);') % (ntrials, nperms, n_rep_branches))
+        print('WARNING: your expreiment will not be balanced\n\t' +
+              f'{ntrials} trials / {nperms} event branches '+
+              f'({len(last_leaves)} leaves)' +
+              f'is not a whole number ({n_rep_branches});\n\t' +
+              str(last_leaves))
         # 'maybe try %f trials
         # '%(ntrials,nperms,n_rep_branches, (int(n_rep_branches)*nperms) ))
 

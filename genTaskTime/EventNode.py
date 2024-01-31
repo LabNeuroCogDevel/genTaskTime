@@ -173,8 +173,13 @@ class EventNode(anytree.NodeMixin):
         dur = dur[0:nsamples]
         self.dur_dist = dur
         # self.dur_dist_avg = functools.reduce(lambda x, y: x+y, dur)/len(dur)
+        if len(dur) == 0:
+            print(f"WARNING: event {self.name} is never included (no durations)!")
+            self.dur_dist_avg = 0
+            return dur
+
         self.dur_dist_avg = sum(dur)/len(dur)
-        return(dur)
+        return dur
 
     def next_dur(self):
         if len(self.dur_dist) == 0:
