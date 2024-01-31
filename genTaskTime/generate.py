@@ -13,6 +13,7 @@ from .EventGrammar import unlist_grammar, parse, parse_settings
 from .badmath import print_uniq_c
 # import itertools
 import numpy as np
+MYRAND = random.Random(random.randrange(sys.maxsize))
 
 
 def parse_events(astobj):
@@ -29,68 +30,87 @@ def parse_events(astobj):
 
 
 def mkChild(parents, elist, verb=1):
-    # tmp copy because we're poping off it
-    subevent_list = unlist_grammar(copy.deepcopy(elist))
+    """
+    @param parents  list of EventNotes (or single root node)
+    @param elist    list of events (likely from parse_events/unlist_grammar)
+    """
+
+    # make sure we're starting with a list
+    # even if it's only one item
     if type(parents) not in [list, tuple]:
         print('mkChild: parent type=%s, expected list: %s' %
               (type(parents), parents))
         parents = [parents]
 
+    # children will be added to parents
     children = parents
-    if type(subevent_list)  not in [list, tuple]:
+
+    # tmp copy because we're poping off it
+    # and we need a list even if it's only one item
+    subevent_list = unlist_grammar(copy.deepcopy(elist))
+    if type(subevent_list) not in [list, tuple]:
         subevent_list = [subevent_list]
-    if len(subevent_list) > 0:
-        children = []
-        if verb > 1:
-            print("popping from: %s" % subevent_list)
+
+    # TODO: look at catchratio?
+    # catch trials are special case like having children
+
+    # no more children to process
+    # end recursive calls
+    if len(subevent_list) == 0:
+        return children
+
+    children = []
+    if verb > 1:
+        print("popping from: %s" % subevent_list)
+    seitem = subevent_list.pop(0)
+
+    # skip '*'
+    if type(seitem) is str:
+        print(f"mkChild: skipping str '{seitem}' (expect '*')")
         seitem = subevent_list.pop(0)
-        # skip '*'
-        if type(seitem) is str:
-            print(f"mkChild: skipping str '{seitem}'")
-            seitem = subevent_list.pop(0)
+
+    if verb > 1:
+        print("mkChild on %s" % seitem)
+
+    # if we only have 1 subevent, still need to treat it like a list
+    if type(seitem['subevent']) not in [list, tuple]:
+        if verb > 1:
+            print(f"mkChild: item type={type(seitem['subevent'])} not list/tuple")
+            print('coercing: %s' % str(seitem['subevent']))
+        seitem['subevent'] = [seitem['subevent']]
+
+    these_subevets = unlist_grammar(seitem['subevent'])
+
+    for sube_info in these_subevets:
+        if type(sube_info) is str:
+            if verb > 1:
+                print(f"\tskipping {sube_info} (expect == ')")
+            continue  # skip ','
 
         if verb > 1:
-            print("mkChild on %s" % seitem)
+            print("\tsube_info: %s" % sube_info)
 
-        # if we only have 1 subevent, still need to treat it like a list
-        # should check for
-        if type(seitem['subevent']) not in [list, tuple]:
+        name = sube_info['subname']
+        freq = sube_info['freq']
+        if freq:
+            freq = int(freq)
+        for p in parents:
             if verb > 1:
-                print(f"mkChild: item type={type(seitem['subevent'])} not list/tuple")
-                print('coercing: %s' % str(seitem['subevent']))
-            seitem['subevent'] = [seitem['subevent']]
+                print("\t\tadding child %s to parent %s" % (name, p))
+            children.append(EventNode(name, parent=p,
+                            nrep=freq, dur=0, verbose=verb))
 
-        these_subevets = unlist_grammar(seitem['subevent'])
-        for sube_info in these_subevets:
-            if type(sube_info) is str:
-                if verb > 1:
-                    print(f"\tskipping {sube_info} (expect == ')")
-                continue  # skip ','
+    # continue down the line
+    # TODO: fix bad hack; break out of list
+    if len(subevent_list) == 1 and str(subevent_list[0] == list):
+        print("\tTODO: do not break recursive list")
+        subevent_list = subevent_list[0]
 
-            if verb > 1:
-                print("\tsube_info: %s" % sube_info)
+    if verb > 1:
+        print("\t\trecurse DOWN: %s" % subevent_list)
+    children = mkChild(children, subevent_list, verb)
 
-            name = sube_info['subname']
-            freq = sube_info['freq']
-            if freq:
-                freq = int(freq)
-            for p in parents:
-                if verb > 1:
-                    print("\t\tadding child %s to parent %s" % (name, p))
-                children.append(EventNode(name, parent=p,
-                                nrep=freq, dur=0, verbose=verb))
-
-        # continue down the line
-        # TODO: fix bad hack; break out of list
-        if len(subevent_list) == 1 and str(subevent_list[0] == list):
-            print("\tTODO: do not break recursive list")
-            subevent_list = subevent_list[0]
-
-        if verb > 1:
-            print("\t\trecurse DOWN: %s" % subevent_list)
-        children = mkChild(children, subevent_list, verb)
-
-    return(children)
+    return children
 
 
 # for a ast list of events, build a tree
@@ -104,19 +124,47 @@ def events_to_tree(events, verb=1):
     """
     last_leaves = None
     for event in events:
+        catchrat = float(event['catchratio']) if event['catchratio'] else 0
+
         if last_leaves is None:
-            last_leaves = [EventNode(event['eventname'],
-                           dur=event['dur'], parent=None, verbose=verb)]
+            parents = [None]
         else:
-            last_leaves = [EventNode(event['eventname'],
-                           dur=event['dur'], parent=r,
-                           verbose=verb) for r in last_leaves]
+            parents = last_leaves
+
+        last_leaves = [EventNode(event['eventname'],
+                                 dur=event['dur'],
+                                 parent=r,
+                                 verbose=verb,
+                                 nrep=1-catchrat)
+                       for r in parents
+                       if (r is None or not r.last)]
+
+        # add back catch (or any other last)
+        # only if we aren't starting at root and there are some to add
+        if parents[0]:
+            term_leaves = [e for e in parents if e.last]
+            if term_leaves:
+                last_leaves += term_leaves
 
         if event['eventtypes']:
             if verb > 1:
                 print('making children for %s' % last_leaves)
                 pprint.pprint(event['eventtypes'])
             last_leaves = mkChild(last_leaves, event['eventtypes'], verb)
+
+        # if catch trials should end here
+        if catchrat > 0 :
+            print(last_leaves)
+            catch_nodes = [EventNode('__catch__',
+                           dur=0, nrep=catchrat, parent=r,
+                           verbose=verb).set_last()
+                           for r in last_leaves]
+
+            if verb > 0:
+                print(f'{event["name"]}: appending {len(catch_nodes)} catch nodes')
+                print(catch_nodes)
+
+            last_leaves += catch_nodes
 
     if len(last_leaves) > 0:
         last_leaves[0].root.verbose = verb
@@ -180,7 +228,7 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
         if l.root.verbose > 1:
             print(msg)
 
-        for branch_rep_i in range(n_total_branch_reps):
+        for branch_rep_i in range(round(n_total_branch_reps)):
             thistrial = []
             fname = []
             dur = 0
@@ -233,7 +281,7 @@ def iti_list(triallist):
     return(itis)
 
 
-def _shuffle_triallist(triallist, myrand=random.Random(), noitifirst=False):
+def _shuffle_triallist(triallist, myrand=MYRAND, noitifirst=False):
     """
     shuffle the list, optionally keeping the first item first
     works inplace on triallist
@@ -376,16 +424,23 @@ def add_itis(triallist, settings, verb=1):
 
     return(triallist)
 
+def rand_round(val, myrand=None):
+    rand = myrand.random() if myrand else 0
+    return int(val + rand)
 
-# update tree for the number of trials we have
-# updates the nodes of tree
-def fit_tree(last_leaves, ntrials):
+
+def fit_tree(last_leaves, ntrials, myrand=MYRAND):
+    """
+    update tree for the number of trials we have
+    updates the nodes of tree
+    """
     # how many times do we go down the tree?
     nperms = 0
-    for l in last_leaves:
-        l.set_last()
-        # print("leaf '%s' seen %d times"%(l,l.need_total))
-        nperms += l.need_total
+    leaf_totals = [l.set_last().need_total for l in last_leaves]
+    adj_factor = min(leaf_totals)
+    adjusted_totals = [rand_round(lf.need_total/adj_factor, myrand)
+                       for lf in last_leaves]
+    nperms = sum(adjusted_totals)
 
     n_rep_branches = ntrials/nperms
 
@@ -417,7 +472,7 @@ def fit_tree(last_leaves, ntrials):
     for u in unique_nodes:
         u.parse_dur(n_rep_branches)
 
-    return((n_rep_branches, nperms))
+    return (n_rep_branches, nperms)
 
 
 def gen_events(last_leaves, settings, verb=1):

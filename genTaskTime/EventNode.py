@@ -40,7 +40,7 @@ def gen_dist(steps, freq, nsamples, dist, parseid="gen_dist"):
 # what we need to store for each event entering our event tree
 class EventNode(anytree.NodeMixin):
 
-    def __init__(self,name,dur,parent=None,nrep=1,writeout=True,extra=None,verbose=1):
+    def __init__(self,name,dur,parent=None,nrep=1,writeout=True,extra=None, verbose=1):
         if(nrep == None): nrep=1
         self.parent=parent
         self.name=name
@@ -53,7 +53,9 @@ class EventNode(anytree.NodeMixin):
         self.extra=extra
 
     def __repr__(self):
-        return("%s=%s (%dd|%dc)"%(self.name,self.nrep,len(self.path),len(self.children)) )
+        return (f"{self.name}@{self.nrep}reps" +
+                f"[{getattr(self,'total_reps','NA')} total] " +
+                f"({len(self.path)}up|{len(self.children)}down)")
 
     # count up and make list of parents to traverse
     def set_last(self):
@@ -63,7 +65,7 @@ class EventNode(anytree.NodeMixin):
         self.parents = self.path
         # self.parents=[]
         while p:
-            self.need_total *= int(p.nrep)
+            self.need_total *= float(p.nrep)
             # self.parents.append(p)
             p = p.parent
         return(self)
@@ -77,9 +79,9 @@ class EventNode(anytree.NodeMixin):
             totalreps += c.count_reps()
         if node.nrep:
             if len(children) == 0:
-                totalreps = int(node.nrep)
+                totalreps = float(node.nrep)
             else:
-                totalreps *= int(node.nrep)
+                totalreps *= float(node.nrep)
         if node.verbose > 1:
             print("count_reps (recursive): %d for all %d children of %s" %
                   (totalreps, len(children), node))
@@ -99,7 +101,7 @@ class EventNode(anytree.NodeMixin):
                 branch_reps *= pn.nrep
                 pn = pn.parent
             node.branch_reps = branch_reps
-        return(node.branch_reps)
+        return node.branch_reps
 
     # TODO: better handle distibutions
     # TODO: parse_dur every iteration
@@ -110,7 +112,11 @@ class EventNode(anytree.NodeMixin):
                            getattr(self, "total_reps",
                                    getattr(self, "nrep", 0)))
 
-        nsamples *= nperms
+        nsamples_perm = nsamples * nperms
+        nsamples = round(nsamples_perm)
+        if nsamples != nsamples_perm:
+            print(f"WARNING: calculated ideal {nsamples_perm} samples but using {nsamples}")
+            print("consider adjusting e.g catch trial ratio or total number of trials")
 
         if self.verbose > 1:
             print('have %d samples to spread for %s' % (nsamples, self.dur))

@@ -2,6 +2,7 @@
 # import pytest
 import genTaskTime as gtt
 from genTaskTime.EventGrammar import unlist_grammar
+from genTaskTime.generate import mkChild
 import pytest
 from helpers import n_trials, sumdur, file_counts
 import numpy as np
@@ -29,6 +30,21 @@ def test_event_unlist():
     assert len(events) == 2
 
 
+def test_mkChild():
+    s = "<60/6> cue=[1](A,B); end=[3]"
+    events = gtt.parse_events(gtt.parse(s))
+    root = gtt.EventNode('root', dur=0)
+    elist = events[0]['eventtypes']
+    # events[0]['eventtypes']['subevent']
+    #   ({'freq': None, 'subname': 'A'}, ',',
+    #    {'freq': None, 'subname': 'B'})
+    children = mkChild(root, elist, verb=99)
+    len(children) == 2  # A and B
+    assert children[0].parent == root
+    assert children[1].parent == root
+    assert children[0].root == root
+
+
 def test_simple_tree():
     s = "<60/6> cue=[1]; end=[3]"
     # parse
@@ -36,6 +52,16 @@ def test_simple_tree():
     last_leaves = gtt.events_to_tree(events, 99)
     assert last_leaves[0].name == 'end'
     assert len(last_leaves) == 1
+
+
+def test_catch_tree():
+    s = "<60/6> cue=[1]{.3}; end=[3]"
+    # parse
+    events = gtt.parse_events(gtt.parse(s))
+    last_leaves = gtt.events_to_tree(events, 99)
+    # cue; cue->end
+    assert len(last_leaves) == 2
+    assert last_leaves[1].name == '__catch__'
 
 
 def test_tree_branch():
@@ -69,6 +95,31 @@ def test_trial_uneven_branch_repcnt():
     assert last_leaves[0].count_branch_reps() == 1
     # 2x B
     assert last_leaves[1].count_branch_reps() == 2
+
+    # get a list of all trials
+    # triallist = gtt.event_tree_to_list(last_leaves, n_rep_branches,
+    #                                    settings['miniti'])
+
+def test_trial_uneven_branch_repcnt_catch():
+    s = "<60/12> cue=[1](A, 2x B){.3}; end=[3]"
+    # parse
+    astobj = gtt.parse(s)
+    settings = gtt.parse_settings(astobj)
+    events = gtt.parse_events(astobj)
+
+    # build a tree from events
+    last_leaves = gtt.events_to_tree(events, 99)
+    # fit tree
+    ntrial = settings['ntrial']
+    (n_rep_branches, nperms) = gtt.fit_tree(last_leaves, ntrial)
+    print(last_leaves)
+    assert nperms == 6  # 1xA + 2xB + .3*1 + .3*2
+    assert n_rep_branches == 2  # total_trials/nperms 12/6
+
+    branch_reps = [lf.count_branch_reps() for lf in last_leaves]
+    # TODO: where does .7 come from!?
+    # 1xA 2xB 1xA .3 (catch) 2xB .3 (catch)
+    assert branch_reps == [.7*br for br in [1, 2, 0.3, 0.3*2]]
 
     # get a list of all trials
     # triallist = gtt.event_tree_to_list(last_leaves, n_rep_branches,
