@@ -115,8 +115,8 @@ class EventNode(anytree.NodeMixin):
         nsamples_perm = nsamples * nperms
         nsamples = round(nsamples_perm)
         if nsamples != nsamples_perm:
-            print(f"WARNING: calculated ideal {nsamples_perm} samples but using {nsamples}")
-            print("consider adjusting e.g catch trial ratio or total number of trials")
+            print(f"WARNING: {self.name} ideal {nsamples_perm:.2f} samples but using {nsamples}")
+            print("\tconsider adjusting e.g catch trial ratio or total number of trials")
 
         if self.verbose > 1:
             print('have %d samples to spread for %s' % (nsamples, self.dur))

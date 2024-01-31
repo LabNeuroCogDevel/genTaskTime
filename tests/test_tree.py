@@ -60,7 +60,7 @@ def test_catch_tree():
     # parse
     events = gtt.parse_events(gtt.parse(s))
     last_leaves = gtt.events_to_tree(events, 99)
-    # cue; cue->end
+    # cue->end; cue->catch
     assert len(last_leaves) == 2
     assert last_leaves[1].name == '__catch__1'
 
@@ -156,7 +156,7 @@ def test_2catch_tree():
     events = gtt.parse_events(gtt.parse(s))
     last_leaves = gtt.events_to_tree(events, 99)
     (n_rep_branches, nperms) = gtt.fit_tree(last_leaves, ntrial)
-    print(anytree.RenderTree(last_leaves[0].root))
+    # print(anytree.RenderTree(last_leaves[0].root))
     assert nperms == 3  # cue+catch, cue+trg+catch, cue+trg+end
 
 

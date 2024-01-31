@@ -4,7 +4,7 @@
 import random
 import anytree
 import copy
-import functools
+import re
 import pprint
 import sys
 import os
@@ -33,6 +33,8 @@ def mkChild(parents, elist, verb=1):
     """
     @param parents  list of EventNotes (or single root node)
     @param elist    list of events (likely from parse_events/unlist_grammar)
+
+    Recursive function to populate leaves of tree
     """
 
     # make sure we're starting with a list
@@ -50,9 +52,6 @@ def mkChild(parents, elist, verb=1):
     subevent_list = unlist_grammar(copy.deepcopy(elist))
     if type(subevent_list) not in [list, tuple]:
         subevent_list = [subevent_list]
-
-    # TODO: look at catchratio?
-    # catch trials are special case like having children
 
     # no more children to process
     # end recursive calls
@@ -97,6 +96,7 @@ def mkChild(parents, elist, verb=1):
         for p in parents:
             if verb > 1:
                 print("\t\tadding child %s to parent %s" % (name, p))
+
             children.append(EventNode(name, parent=p,
                             nrep=freq, dur=0, verbose=verb))
 
@@ -108,6 +108,7 @@ def mkChild(parents, elist, verb=1):
 
     if verb > 1:
         print("\t\trecurse DOWN: %s" % subevent_list)
+
     children = mkChild(children, subevent_list, verb)
 
     return children
@@ -116,11 +117,11 @@ def mkChild(parents, elist, verb=1):
 # for a ast list of events, build a tree
 def events_to_tree(events, verb=1):
     """
+    @param events 'allevents' AST from parse_events/unlist_grammar
+    @param verb    verbosity (level > 1 prints extra/debug info)
+
     Generate list of EventNodes representing terminal tree leaves.
     Each leaf represents a the combination of events describing a single run.
-
-    Input from parse_events (unlist_grammar of 'allevents' from AST).
-    20240131: change in representation? updated libaries fails many tests
     """
     last_leaves = None
     catch_count = 0
@@ -251,7 +252,12 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
                                           'type': 'event'})
                     fname = []
                     dur = 0
-                fname.append(n.name)
+
+                # __catch__ trials are special
+                # timing should go into preceding child
+                # identified by name. TODO: catch property (or function) to node?
+                if not re.match(r'__catch__[0-9]+', n.name):
+                    fname.append(n.name)
                 dur += n.next_dur()
             if fname:
                 thistrial.append({'fname': fname, 'dur': dur, 'type': 'event'})
