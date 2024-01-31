@@ -140,18 +140,18 @@ def events_to_tree(events, verb=1):
                        for r in parents
                        if (r is None or not r.last)]
 
+        if event['eventtypes']:
+            if verb > 1:
+                print('making children for %s' % last_leaves)
+                pprint.pprint(event['eventtypes'])
+            last_leaves = mkChild(last_leaves, event['eventtypes'], verb)
+
         # add back catch (or any other last)
         # only if we aren't starting at root and there are some to add
         if parents[0]:
             term_leaves = [e for e in parents if e.last]
             if term_leaves:
                 last_leaves += term_leaves
-
-        if event['eventtypes']:
-            if verb > 1:
-                print('making children for %s' % last_leaves)
-                pprint.pprint(event['eventtypes'])
-            last_leaves = mkChild(last_leaves, event['eventtypes'], verb)
 
         # if catch trials, should end here
         # set_last() will set node.last = True

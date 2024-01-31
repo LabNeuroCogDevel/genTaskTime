@@ -126,11 +126,28 @@ def test_trial_uneven_branch_repcnt_catch():
     # triallist = gtt.event_tree_to_list(last_leaves, n_rep_branches,
     #                                    settings['miniti'])
 
+
 def test_2catch():
     s = "<60/12> cue=[1]{.3}; trg=[2]{.2}; end=[3]"
     events = gtt.parse_events(gtt.parse(s))
     last_leaves = gtt.events_to_tree(events, 99)
     assert len(last_leaves) == 3
+    assert last_leaves[1].name == '__catch__1'
+
+    assert last_leaves[2].name == '__catch__2'
+    assert last_leaves[2].path[-2].name == 'trg'
+
+
+def test_2catch_perms():
+    s = "<60/12> cue=[1](A,B){.3}; trg=[2](C,D){.2}; end=[3]"
+    events = gtt.parse_events(gtt.parse(s))
+    last_leaves = gtt.events_to_tree(events, 99)
+    assert len(last_leaves) == 10
+    assert last_leaves[4].name == '__catch__1'
+    assert last_leaves[4].path[-2].name == 'A'
+
+    assert last_leaves[9].name == '__catch__2'
+    assert last_leaves[9].path[-2].name == 'D'
 
 
 def test_2catch_tree():
