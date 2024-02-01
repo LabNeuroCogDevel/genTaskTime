@@ -19,7 +19,7 @@ def test_easy():
 
 
 def test_catch_triallist():
-    s = "<60/24> cue=[1]{.3}; trg=[2]{.2}; end=[3]"
+    s = "<60/24> cue=[1]{.333}; trg=[2]{.5}; end=[3]"
     ntrial = 24  # hard code to match above
     events = gtt.parse_events(gtt.parse(s))
     last_leaves = gtt.events_to_tree(events, 99)
@@ -33,5 +33,5 @@ def test_catch_triallist():
     for k in sorted([e['fname'][0] for nodereps in elist for e in nodereps]):
         cnt[k] = cnt.get(k,0) + 1
     assert cnt['cue'] == 24
-    assert cnt['trg'] == 24*2/3
-    assert cnt['end'] == 24*2/3*2/3
+    assert cnt['trg'] == 24*2/3     # 16
+    assert cnt['end'] == 24*2/3*1/2 # 8

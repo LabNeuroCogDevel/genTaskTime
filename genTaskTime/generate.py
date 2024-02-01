@@ -137,7 +137,8 @@ def events_to_tree(events, verb=1):
                                  dur=event['dur'],
                                  parent=r,
                                  verbose=verb,
-                                 nrep=1-catchrat)
+                                 #nrep=1-catchrat
+)
                        for r in parents
                        if (r is None or not r.last)]
 

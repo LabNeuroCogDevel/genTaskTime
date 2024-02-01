@@ -118,9 +118,8 @@ def test_trial_uneven_branch_repcnt_catch():
     assert n_rep_branches == 2  # total_trials/nperms 12/6
 
     branch_reps = [lf.count_branch_reps() for lf in last_leaves]
-    # TODO: where does .7 come from!?
     # 1xA 2xB 1xA .3 (catch) 2xB .3 (catch)
-    assert branch_reps == [.7*br for br in [1, 2, 0.3, 0.3*2]]
+    assert branch_reps == [1.0, 2.0, 0.3, 0.3*2]
 
     # get a list of all trials
     # triallist = gtt.event_tree_to_list(last_leaves, n_rep_branches,
