@@ -272,7 +272,7 @@ def event_tree_to_list(last_leaves, n_rep_branches, min_iti):
             #     triallist.append(thistrial)
     if l.root.verbose > 5:
         pprint.pprint(triallist)
-    return(triallist)
+    return triallist
 
 
 def iti_list(triallist):
