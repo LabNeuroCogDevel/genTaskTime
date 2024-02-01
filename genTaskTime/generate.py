@@ -13,6 +13,7 @@ from .EventGrammar import unlist_grammar, parse, parse_settings
 from .badmath import print_uniq_c
 # import itertools
 import numpy as np
+import pandas as pd
 MYRAND = random.Random(random.randrange(sys.maxsize))
 
 
@@ -346,6 +347,24 @@ def shuffle_triallist(settings, tl, seed=None, maxiterations=5000):
     return((triallist, seed))
 
 
+def triallist_to_df(triallist, start_at_time: float) -> pd.DataFrame:
+    """
+    @param triallist      list of event lists likely last modified by add_itis
+    @param start_at_time  initial onset time of first event
+    @return dataframe row per event, including __iti__ time.
+            columns: event, onset, dur
+    """
+    events = []
+    total_time = start_at_time
+    for tt in triallist:
+        for t in tt:
+            # fname is a list like ['cue','left'] or None for iti
+            name = "_".join(t['fname']) if t['fname'] else "__iti__"
+            events.append({'event': name, 'onset': total_time, 'dur': t['dur']})
+            total_time += t['dur']
+    return pd.DataFrame(events)
+
+
 def write_list_to_file(triallist, seed, start_at_time, writedur=True):
     # initialize start time and dict to hold output file handles
     total_time = start_at_time
@@ -535,7 +554,15 @@ def write_trials(last_leaves, settings, n_iterations=1000, verb=1):
         # could not find a shuffle that worked!
         if triallist is None:
             continue
-        # start timer after or initial rest period
+
+        # save to iteration specific directory
+        savedir = "%018d" % seed
+        os.makedirs(savedir, exist_ok=True)
+
+        edf = triallist_to_df(triallist, start_at_time)
+        edf.to_csv(os.path.join(savedir, "event_onset_duration.tsv"),
+                   sep="\t", index=False)
+
         write_list_to_file(triallist, seed, start_at_time)
 
         # TODO: run 3dDeconvolve

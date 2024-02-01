@@ -13,6 +13,7 @@ setup(name='genTaskTime',
       },
       install_requires=[
           'anytree',
+          'pandas',
           'tatsu'
           ],
       zip_safe=False)
