@@ -349,7 +349,7 @@ def shuffle_triallist(settings, tl, seed=None, maxiterations=5000):
 
 def triallist_to_df(triallist, start_at_time: float) -> pd.DataFrame:
     """
-    @param triallist      list of event lists likely last modified by add_itis
+    @param triallist      list of event lists. likely last modified by add_itis
     @param start_at_time  initial onset time of first event
     @return dataframe row per event, including __iti__ time.
             columns: event, onset, dur
@@ -359,56 +359,67 @@ def triallist_to_df(triallist, start_at_time: float) -> pd.DataFrame:
     for tt in triallist:
         for t in tt:
             # fname is a list like ['cue','left'] or None for iti
+            # iti's are repeated based on iti resolution. collapse into one
             name = "_".join(t['fname']) if t['fname'] else "__iti__"
-            events.append({'event': name, 'onset': total_time, 'dur': t['dur']})
+            if name == "__iti__" and len(events)>0 and events[-1]["event"] == "__iti__":
+                events[-1]["dur"] += t["dur"]
+            else:
+                events.append({'event': name, 'onset': total_time, 'dur': t['dur']})
             total_time += t['dur']
     return pd.DataFrame(events)
 
 
-def write_list_to_file(triallist, seed, start_at_time, writedur=True):
-    # initialize start time and dict to hold output file handles
-    total_time = start_at_time
-    write_to = {}
-    for tt in triallist:
-        for t in tt:
-            # if we have a fname,
-            # we want to write this event (stimulus) onset to a file
-            if t['fname']:
-                # name should be unique to this iteration.
-                #    iter_id = "%05d"%iter_i
-                # lets use the seed instead, so we can get back to it
-                iter_id = "%018d" % seed
-                fname = "_".join(t['fname'])
-                fname = fname + '.1D'
-                outname = os.path.join(iter_id, fname)
+def df_to_1D(event_df: pd.DataFrame, savedir: os.PathLike | None, writedur=True) -> dict[os.path, list[str]]:
+    """
+    Writes onsets to per event 1D (AFNI timing) file, unless savedir is None.
+    Always returns fname-keyed dict with list of onsets.
+    event onsets and optionally married durations on one space separated le line.
 
-                # if we have not stored this name yet
-                # we should open it and store the handle
-                if not write_to.get(outname):
-                    # print('%s'%outname)
-                    outdir = os.path.dirname(outname)
-                    if not os.path.isdir(outdir):
-                        os.mkdir(outdir)
-                    write_to[outname] = open(outname, 'w')
+    @param event_df dataframe with row per event. cols: event, onset, dur
+    @param savedir  where to save all 1D files like event.1D (None to disable write)
+    @param writedur included duration married to onset (like 'onset:dur')
+    @return
+    """
+    # initialize dict to hold output file handles.
+    # key   - output file handle
+    # value - list of "onset:duration" to write to file
+    write_to: dict[os.path, list[str]] = {}
 
-                # write onset time of this stimulus/event
-                # optionally put the duration in there too
-                # like: (onset:dur) e.g 30:1.5
-                if writedur:
-                    onsetstr = "%.02f:%.02f " % (total_time, t['dur'])
-                else:
-                    onsetstr = "%.02f " % total_time
+    # NB. 20240202 dataframe uses 3 decimal places (milliseconds)
+    #              reducing to 2 for 1D files
+    for _, event in event_df.iterrows():
+        # dont need 1D file for ITI
+        # maybe want to add 'no_1D' column to output of triallist_to_df
+        # instead of matching on name?
+        if event['event'] == "__iti__":
+            continue
 
-                # finally write it
-                write_to[outname].write(onsetstr)
+        if writedur:
+            onsetstr = "%.02f:%.02f" % (event['onset'], event['dur'])
+        else:
+            onsetstr = "%.02f" % event['onset']
 
-            # increment total time
-            total_time += t['dur']
+        outname = os.path.join(savedir if savedir else "",
+                               event["event"] + ".1D")
+        if not write_to.get(outname):
+            write_to[outname] = []
+        write_to[outname].append(onsetstr)
 
-    # add new lines to the end of all the files and close the handle
-    for v in write_to.values():
-        v.write('\n')
-        v.close()
+    # no savedir, no write
+    if savedir is None:
+        return write_to
+
+    # finished building across all events.
+    # can now write onset collection to each file
+    for out1D, onsets in write_to.items():
+        # maybe event name has path separator?
+        # if not, could just mkdirs(savedir) outside loop instead
+        os.makedirs(os.path.dirname(out1D), exist_ok=True)
+        fh_1D = open(out1D, 'w')
+        fh_1D.write(" ".join(onsets) + "\n")
+        fh_1D.close()
+
+    return write_to
 
 
 # settings stores 'rundur' and maybe granularity and finish_with_left
@@ -561,9 +572,10 @@ def write_trials(last_leaves, settings, n_iterations=1000, verb=1):
 
         edf = triallist_to_df(triallist, start_at_time)
         edf.to_csv(os.path.join(savedir, "event_onset_duration.tsv"),
-                   sep="\t", index=False)
+                   sep="\t", index=False, float_format="%.3f")
 
-        write_list_to_file(triallist, seed, start_at_time)
+        # write out 1D timing files. likely for AFNI's '3dDeconvolve -nodata'
+        df_to_1D(edf, savedir)
 
         # TODO: run 3dDeconvolve
 
