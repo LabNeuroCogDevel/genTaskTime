@@ -193,3 +193,40 @@ class EventNode(anytree.NodeMixin):
             #if not self.picked: self.picked=0
             #self.picked+=1
             return(dur)
+
+def uniquenode(n):
+    """
+    Unique string for a node that might be shared across end leaves
+    currently just use that nodes name
+    """
+    return str(n.name)
+    # catch names should be unique for what is caught
+    # in cue(ring,rew){.3}, cur_ring-catch, cue_new-catch are the same
+    # so not this:
+    # if n.name == "__catch__":
+    #     return "catch" + "_".join([x.name for x in n.path])
+
+
+def create_master_refs(root):
+    """
+     create a master node used to calculate delays
+    each node in the tree with the same name points to the same master node
+    """
+    # root requires no calculation -- there is only one (right!?)
+    masternodes = {}
+
+    for n in (root, *root.descendants):
+        nname = uniquenode(n)
+        if not masternodes.get(nname):
+            n.master_total_reps = 0
+            masternodes[nname] = n
+        n.master_node = masternodes.get(nname)
+        # this is wrong
+        #   n.master_node.master_total_reps += n.total_reps
+        # total_reps is "total on that branch".
+        #  at root == nperms
+        #  at leaf might it is == nrep
+
+        # should be sum of leaf nodes need_total
+        n.master_node.master_total_reps += n.count_branch_reps()
+    return([x for x in masternodes.values()])

@@ -16,7 +16,7 @@ def test_easy():
     n = c.count_reps()
 
     gtt.fit_tree(last_leaves, n)
-    gtt.event_tree_to_list(last_leaves, 1, 0)
+    last_leaves.event_tree_to_list(n_rep_branches=1, min_iti=0)
 
 
 def test_catch_triallist():
@@ -24,11 +24,11 @@ def test_catch_triallist():
     ntrial = 24  # hard code to match above
     events = gtt.parse_events(gtt.parse(s))
     last_leaves = gtt.events_to_tree(events, 99)
-    (n_rep_branches, nperms) = gtt.fit_tree(last_leaves, ntrial)
-    gtt.fit_tree(last_leaves, ntrial)
+    (n_rep_branches, nperms) = last_leaves.fit_tree(ntrial)
+    last_leaves.fit_tree(ntrial)
 
     # also see gen_events()
-    elist = gtt.event_tree_to_list(last_leaves, n_rep_branches, min_iti=0)
+    elist = last_leaves.event_tree_to_list(n_rep_branches, min_iti=0)
     # quick dumb counts
     cnt = {}
     for k in sorted([e['fname'][0] for nodereps in elist for e in nodereps]):

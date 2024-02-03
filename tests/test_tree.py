@@ -2,7 +2,7 @@
 # import pytest
 import genTaskTime as gtt
 from genTaskTime.EventGrammar import unlist_grammar
-from genTaskTime.generate import mkChild
+from genTaskTime.LastLeaves import mkChild
 import pytest
 from helpers import n_trials, sumdur, file_counts
 import numpy as np
@@ -88,7 +88,7 @@ def test_trial_uneven_branch_repcnt():
     last_leaves = gtt.events_to_tree(events, 99)
     # fit tree
     ntrial = settings['ntrial']
-    (n_rep_branches, nperms) = gtt.fit_tree(last_leaves, ntrial)
+    (n_rep_branches, nperms) = last_leaves.fit_tree(ntrial)
     assert nperms == 3  # 1xA + 2xB == 3
     assert n_rep_branches == 2  # total_trials/(A + 2 B) => 6/3 => 2
 
@@ -98,7 +98,7 @@ def test_trial_uneven_branch_repcnt():
     assert last_leaves[1].count_branch_reps() == 2
 
     # get a list of all trials
-    # triallist = gtt.event_tree_to_list(last_leaves, n_rep_branches,
+    # triallist = last_leaves.event_tree_to_list(last_leaves, n_rep_branches,
     #                                    settings['miniti'])
 
 def test_trial_uneven_branch_repcnt_catch():
@@ -112,7 +112,7 @@ def test_trial_uneven_branch_repcnt_catch():
     last_leaves = gtt.events_to_tree(events, 99)
     # fit tree
     ntrial = settings['ntrial']
-    (n_rep_branches, nperms) = gtt.fit_tree(last_leaves, ntrial)
+    (n_rep_branches, nperms) = last_leaves.fit_tree(ntrial)
     print(last_leaves)
     assert nperms == 6  # 1xA + 2xB + .3*1 + .3*2
     assert n_rep_branches == 2  # total_trials/nperms 12/6
@@ -122,7 +122,7 @@ def test_trial_uneven_branch_repcnt_catch():
     assert branch_reps == [1.0, 2.0, 0.3, 0.3*2]
 
     # get a list of all trials
-    # triallist = gtt.event_tree_to_list(last_leaves, n_rep_branches,
+    # triallist = last_leaves.event_tree_to_list(last_leaves, n_rep_branches,
     #                                    settings['miniti'])
 
 
@@ -154,7 +154,7 @@ def test_2catch_tree():
     ntrial = 12  # hard code to match above
     events = gtt.parse_events(gtt.parse(s))
     last_leaves = gtt.events_to_tree(events, 99)
-    (n_rep_branches, nperms) = gtt.fit_tree(last_leaves, ntrial)
+    (n_rep_branches, nperms) = last_leaves.fit_tree(ntrial)
     # print(anytree.RenderTree(last_leaves[0].root))
     assert nperms == 3  # cue+catch, cue+trg+catch, cue+trg+end
 
